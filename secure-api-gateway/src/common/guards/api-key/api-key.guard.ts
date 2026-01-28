@@ -14,7 +14,7 @@ export class ApiKeyGuard implements CanActivate{
       throw new UnauthorizedException('Missing API key')
     }
 
-    if (apiKey!=="dummy_key"){
+    if (apiKey!=='test-api-key'){
       throw new UnauthorizedException("Invalid API key")
     }
 

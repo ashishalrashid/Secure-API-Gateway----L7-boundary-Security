@@ -8,12 +8,13 @@ import {
 import type { Request, Response } from 'express';
 import * as httpProxy from 'http-proxy';
 import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
-import { Jwtguard } from 'src/common/guards/jwt/jwt.guard';
+import { JwtGuard } from 'src/common/guards/jwt/jwt.guard';
+import { RateLimitGuard } from 'src/common/guards/rate-limit/rate-limit.guard';
 
 const proxy = httpProxy.createProxyServer({});
 
 @Controller('api')
-@UseGuards(ApiKeyGuard, Jwtguard)
+@UseGuards(ApiKeyGuard, JwtGuard,RateLimitGuard)
 export class GatewayController {
   private readonly upstream = 'http://localhost:4000';
 
