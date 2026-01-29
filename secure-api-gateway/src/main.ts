@@ -4,6 +4,10 @@ import 'dotenv/config'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // console.log('ISSUER:', process.env.IDP_ISSUER);
+  // console.log('JWKS:', process.env.IDP_JWKS_URI);
+  // console.log('AUD:', process.env.IDP_AUDIENCE);
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

@@ -18,8 +18,11 @@ const proxy = httpProxy.createProxyServer({});
 export class GatewayController {
   private readonly upstream = 'http://localhost:4000';
 
-  @All('*')
+  @All('*path')
   proxyRequest(@Req() req: Request, @Res() res: Response) {
+
+    req.url =req.url.replace(/^\/api/,'');
+
     proxy.web(req, res, { target: this.upstream }, (err) => {
       res.status(502).json({ error: 'Bad Gateway', details: err.message });
     });

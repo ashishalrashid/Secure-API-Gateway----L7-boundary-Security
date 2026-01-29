@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -10,6 +11,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 @Injectable()
 export class JwtGuard implements CanActivate {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
+  private logger = new Logger('JwtGuard');
 
   private getJwks() {
     if (!this.jwks) {
@@ -36,15 +38,21 @@ export class JwtGuard implements CanActivate {
     const token = auth.slice(7);
 
     try {
+      // this.logger.debug('Verifying JWT token');
+      // this.logger.debug(`IDP_ISSUER: ${process.env.IDP_ISSUER}`);
+      // this.logger.debug(`IDP_AUDIENCE: ${process.env.IDP_AUDIENCE}`);
+      
       const { payload } = await jwtVerify(token, this.getJwks(), {
         issuer: process.env.IDP_ISSUER,
         audience: process.env.IDP_AUDIENCE,
       });
 
+      this.logger.debug('JWT verified successfully');
       (req as any).identity = payload;
       return true;
     } catch (err) {
-      throw new UnauthorizedException('Invalid or expired JWT');
+      this.logger.error('JWT verification failed', err);
+      throw new UnauthorizedException(`Invalid or expired JWT: ${err.message}`);
     }
   }
 }
