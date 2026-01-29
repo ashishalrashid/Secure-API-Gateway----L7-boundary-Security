@@ -1,58 +1,49 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
-import type { Request } from 'express';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { Observable } from "rxjs";
+
 
 @Injectable()
-export class JwtGuard implements CanActivate {
-  private jwks?: ReturnType<typeof createRemoteJWKSet>;
-  private logger = new Logger('JwtGuard');
+export class JwtGuard implements CanActivate{
+  private jwksCache =new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
-  private getJwks() {
-    if (!this.jwks) {
-      const uri = process.env.IDP_JWKS_URI;
+  private getJwks(tenantId: string, jwksUri: string){
+    if (!this.jwksCache.has(tenantId)){
+      this.jwksCache.set(
+        tenantId,
+        createRemoteJWKSet(new URL(jwksUri)),
+      );
 
-      if (!uri) {
-        throw new Error('IDP_JWKS_URI is not set');
-      }
-
-      this.jwks = createRemoteJWKSet(new URL(uri));
     }
-
-    return this.jwks;
+    return this.jwksCache.get(tenantId)!;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request>();
+      const req =context.switchToHttp().getRequest<Request>();
+      const tenant =(req as any).tenant;
 
-    const auth = req.headers['authorization'];
-    if (!auth || !auth.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing Authorization header');
-    }
+      if (!tenant){
+        throw new UnauthorizedException('Tenant not resolved');
+      }
 
-    const token = auth.slice(7);
+      const auth = req.headers['authorization'];
+      if (!auth || !auth.startWith('Bearer ')){
+        throw new UnauthorizedException('Missing Auth header');
+      }
 
-    try {
-      // this.logger.debug('Verifying JWT token');
-      // this.logger.debug(`IDP_ISSUER: ${process.env.IDP_ISSUER}`);
-      // this.logger.debug(`IDP_AUDIENCE: ${process.env.IDP_AUDIENCE}`);
-      
-      const { payload } = await jwtVerify(token, this.getJwks(), {
-        issuer: process.env.IDP_ISSUER,
-        audience: process.env.IDP_AUDIENCE,
-      });
+      const token =auth.slice(7);
 
-      this.logger.debug('JWT verified successfully');
-      (req as any).identity = payload;
-      return true;
-    } catch (err) {
-      this.logger.error('JWT verification failed', err);
-      throw new UnauthorizedException(`Invalid or expired JWT: ${err.message}`);
-    }
+      try {
+        const { payload } =await jwtVerify(token,this.getJwks(tenant.id,tenant.idp.jwksUri),{issuer:tenant.idp.issuer,audience:tenant.idp.audience,},);
+
+        (req as any).identity =payload;
+        return true;
+
+      } catch{
+        throw new UnauthorizedException("Invalid or expired JWT");
+
+      }
   }
 }
