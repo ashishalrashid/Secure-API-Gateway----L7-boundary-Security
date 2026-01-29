@@ -29,7 +29,7 @@ export class JwtGuard implements CanActivate{
       }
 
       const auth = req.headers['authorization'];
-      if (!auth || !auth.startWith('Bearer ')){
+      if (!auth || !auth.startsWith('Bearer ')){
         throw new UnauthorizedException('Missing Auth header');
       }
 

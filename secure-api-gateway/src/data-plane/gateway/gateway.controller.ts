@@ -10,11 +10,12 @@ import * as httpProxy from 'http-proxy';
 import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
 import { JwtGuard } from 'src/common/guards/jwt/jwt.guard';
 import { RateLimitGuard } from 'src/common/guards/rate-limit/rate-limit.guard';
+import { RouteGuard } from 'src/common/guards/route/route.guard';
 
 const proxy = httpProxy.createProxyServer({});
 
 @Controller('api')
-@UseGuards(ApiKeyGuard, JwtGuard,RateLimitGuard)
+@UseGuards(ApiKeyGuard, JwtGuard,RouteGuard,RateLimitGuard)
 export class GatewayController {
   private readonly upstream = 'http://localhost:4000';
 
