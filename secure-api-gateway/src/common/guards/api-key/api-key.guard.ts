@@ -9,7 +9,7 @@ export class ApiKeyGuard implements CanActivate{
 
   constructor(private TenantService:TenantService){}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req =context.switchToHttp().getRequest<Request>();
 
     const apiKey =req.headers['x-api-key'];
@@ -18,7 +18,7 @@ export class ApiKeyGuard implements CanActivate{
       throw new UnauthorizedException('Missing API key')
     }
 
-    const tenant=this.TenantService.findByApiKey(apiKey);
+    const tenant=await this.TenantService.findByApiKey(apiKey);
 
     if (!tenant){
       throw new UnauthorizedException("Invalid API key")
