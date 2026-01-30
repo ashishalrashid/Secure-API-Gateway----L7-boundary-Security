@@ -41,7 +41,14 @@ export class JwtGuard implements CanActivate{
         (req as any).identity =payload;
         return true;
 
-      } catch{
+      } catch(error: any){
+        console.error('JWT Verification Error:', {
+          error: error.message,
+          code: error.code,
+          tenantId: tenant.id,
+          expectedIssuer: tenant.idp.issuer,
+          expectedAudience: tenant.idp.audience,
+        });
         throw new UnauthorizedException("Invalid or expired JWT");
 
       }

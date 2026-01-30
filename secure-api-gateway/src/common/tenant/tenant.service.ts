@@ -1,26 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { Tenant } from './tenant.model';
+import { redis } from '../redis/redis.client';
+import * as crypto from 'crypto';
 
 @Injectable()
-export class TenantService {
-  private tenants: Tenant[] = [
-    {
-      id: 'tenant-a',
-      name: 'Tenant A',
+export class TenantService{
+    private hashApiKey(apiKey: string):string{
+        return crypto.createHash('sha256').update(apiKey).digest('hex');
+    }
 
-      apiKey: 'test-api-key',
 
-      idp: {
-        issuer: 'https://dev-ashishalrashid.uk.auth0.com/',
-        jwksUri: 'https://dev-ashishalrashid.uk.auth0.com/.well-known/jwks.json',
-        audience: 'api-gateway',
-      },
+    async findByApiKey(apiKey:string) :Promise<Tenant|null>{
+        const apiKeyHash= this.hashApiKey(apiKey);
 
-      allowedRoutes: ['/health', '/orders'],
-    },
-  ];
+        const tenantId=await redis.get(`tenant:byApiKey:${apiKeyHash}`);
+        if (!tenantId) return null;
 
-  findByApiKey(apiKey:string):Tenant | undefined{
-    return this.tenants.find(t=>t.apiKey===apiKey);
-  }
+        const tenantJson =await redis.get(`tenant:${tenantId}`);
+        if (!tenantJson) return null;
+
+        return JSON.parse(tenantJson) as Tenant;
+    }
 }
