@@ -2,7 +2,7 @@ import * as crypto from 'crypto';
 import { Tenant } from 'src/common/tenant/tenant.model';
 import { redis } from 'src/common/redis/redis.client';
 import { AdminGuard } from './guards/admin.guard';
-import { Controller, UseGuards, Post ,Body } from '@nestjs/common';
+import { Controller, UseGuards, Post ,Body, Param, } from '@nestjs/common';
 
 @Controller('control-plane')
 @UseGuards(AdminGuard)
@@ -46,5 +46,26 @@ export class ControlPlaneController{
         status: 'tenant created',
         tenantId: tenant.id,
     };
+    }
+
+    //rotate and create api keys
+    @Post('tenants/:id/apikey')
+    async rotateApiKey(@Param('id') tenantId:string){
+
+        const tenantKey= `tenant:${tenantId}`;
+        const tenantJson =await redis.get(tenantKey);
+        
+        if (!tenantJson){
+            return {error:'tenant not found'};
+        }
+
+        const apikey =this.generateApiKey();
+        const hash =this.hashApiKey(apikey);
+
+        await redis.set(`tenant:byApiKey:${hash}`,tenantId);
+
+        return {
+            apikey,warning:'Store key , cannot be retrived again'
+        };
     }
 }

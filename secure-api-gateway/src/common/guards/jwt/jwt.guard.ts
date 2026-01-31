@@ -7,6 +7,7 @@ import { Observable } from "rxjs";
 
 @Injectable()
 export class JwtGuard implements CanActivate{
+
   private jwksCache =new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
   private getJwks(tenantId: string, jwksUri: string){
@@ -21,8 +22,11 @@ export class JwtGuard implements CanActivate{
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-      const req =context.switchToHttp().getRequest<Request>();
+    console.log('JWT GUARD HIT');  
+    
+    const req =context.switchToHttp().getRequest<Request>();
       const tenant =(req as any).tenant;
+      
 
       if (!tenant){
         throw new UnauthorizedException('Tenant not resolved');
