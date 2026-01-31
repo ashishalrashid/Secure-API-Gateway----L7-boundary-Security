@@ -1,0 +1,10 @@
+{
+  "id": "tenant-b",
+  "name": "Tenant A",
+  "idp": {
+    "issuer": "https://dev-ashishalrashid.uk.auth0.com/",
+    "jwksUri": "https://dev-ashishalrashid.uk.auth0.com/.well-known/jwks.json",
+    "audience": "api-gateway"
+  },
+  "allowedRoutes": ["/health", "/orders"]
+}
