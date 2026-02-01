@@ -2,7 +2,9 @@ import * as crypto from 'crypto';
 import { Tenant } from 'src/common/tenant/tenant.model';
 import { redis } from 'src/common/redis/redis.client';
 import { AdminGuard } from './guards/admin.guard';
-import { Controller, UseGuards, Post ,Body, Param, } from '@nestjs/common';
+import { Controller, UseGuards, Post ,Body, Param, Put, HttpException, HttpStatus, Get} from '@nestjs/common';
+import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
+import { json } from 'stream/consumers';
 
 @Controller('control-plane')
 @UseGuards(AdminGuard)
@@ -67,5 +69,79 @@ export class ControlPlaneController{
         return {
             apikey,warning:'Store key , cannot be retrived again'
         };
+    }
+    //update idp
+    @Put('tenants/:id/idp')
+    async updateTenantIdp(
+        @Param('id') tenantId:string,
+        @Body()
+        body:{
+            issuer:string;
+            jwksUri:string;
+            audience:string;
+        },
+    ){
+        const tenantKey =`tenant:${tenantId}`;
+        const tenantJson =await redis.get(tenantKey);
+
+        if (!tenantJson){
+            throw new HttpException('tenant not resolved',HttpStatus.NOT_FOUND);
+        }
+
+        if (!body.issuer||!body.audience || !body.jwksUri){
+            throw new HttpException('issuer , jwksuri and audience required', HttpStatus.BAD_REQUEST);
+        }
+
+        const tenant =JSON.parse(tenantJson);
+        tenant.idp  =body;
+
+        await redis.set(tenantKey,JSON.stringify(tenant));
+
+        return {tenantId,idp:tenant.idp};
+    }
+
+    //Update routes
+    @Put('tenants/:id/routes')
+    async updateTenantRoutes(
+        @Param('id') tenantId:string,
+        @Body()
+        body:{allowedRoutes: string[];},
+    ){
+        const tenantKey=`tenant:${tenantId}`;
+        const tenantJson=await redis.get(tenantKey);
+
+        if (!tenantJson){
+            throw new HttpException('tenant key not found', HttpStatus.NOT_FOUND);
+        }
+
+        if(!Array.isArray(body.allowedRoutes)){
+            throw new HttpException('Allowed routes not provide or not an array',HttpStatus.BAD_REQUEST);
+        }
+
+        const tenant =JSON.parse(tenantJson);
+        tenant.allowedRoutes =body.allowedRoutes;
+
+        await redis.set(tenantKey,JSON.stringify(tenant));
+
+        return {tenantId,allowedRoutes:tenant.allowedRoutes};
+    }
+
+    //List all tenants {observability}
+    @Get('tenants')
+    async listTenants(){
+        const keys=await redis.keys('tenant:*');
+
+        const tenants=[];
+
+        for (const key of keys){
+            if (key.startsWith('tenant:byApiKey:')) continue;
+
+            const tenantJson =await redis.get(key);
+            if (!tenantJson) continue;
+
+            // tenants.push(JSON.parse(tenantJson));
+
+        }
+        return tenants;
     }
 }
