@@ -1,0 +1,7 @@
+{
+  "allowedRoutes": [
+    "/health",
+    "/orders/*",
+    "/invoices"
+  ]
+}

@@ -43,6 +43,10 @@ export class ControlPlaneController{
     };
 
     await redis.set(tenantKey, JSON.stringify(tenant));
+    await redis.multi()
+        .set(`tenant:${body.id}`, JSON.stringify(tenant))
+        .sadd('tenant:index', tenant.id)
+        .exec();
 
     return {
         status: 'tenant created',
@@ -128,19 +132,16 @@ export class ControlPlaneController{
 
     //List all tenants {observability}
     @Get('tenants')
-    async listTenants(){
-        const keys=await redis.keys('tenant:*');
+    async listTenants() {
+        const tenantIds = await redis.smembers('tenant:index');
 
-        const tenants=[];
+        const tenants: any[]= [];
 
-        for (const key of keys){
-            if (key.startsWith('tenant:byApiKey:')) continue;
-
-            const tenantJson =await redis.get(key);
+        for (const tenantId of tenantIds) {
+            const tenantJson = await redis.get(`tenant:${tenantId}`);
             if (!tenantJson) continue;
 
-            // tenants.push(JSON.parse(tenantJson));
-
+            tenants.push(JSON.parse(tenantJson));
         }
         return tenants;
     }

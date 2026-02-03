@@ -1,6 +1,6 @@
 {
-  "id": "tenant-b",
-  "name": "Tenant A",
+  "id": "tenant-2",
+  "name": "Tenant 1",
   "idp": {
     "issuer": "https://dev-ashishalrashid.uk.auth0.com/",
     "jwksUri": "https://dev-ashishalrashid.uk.auth0.com/.well-known/jwks.json",

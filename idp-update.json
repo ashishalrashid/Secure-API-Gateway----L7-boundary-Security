@@ -1,0 +1,5 @@
+{
+  "issuer": "https://login.tenant-a.com/",
+  "jwksUri": "https://login.tenant-a.com/.well-known/jwks.json",
+  "audience": "tenant-a-v2"
+}
