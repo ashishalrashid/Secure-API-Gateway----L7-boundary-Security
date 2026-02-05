@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import type { Request } from "express";
 import { TenantService } from "src/common/tenant/tenant.service";
-
+import { logAuthDeny } from "src/common/logger/guardlogger";
 
 
 @Injectable()
@@ -18,6 +18,7 @@ export class ApiKeyGuard implements CanActivate{
     console.log('API Key check - apiKey present:', !!apiKey);
 
     if (!apiKey  || typeof apiKey!=='string'){
+      logAuthDeny(req,'invalid_api_key','missing');
       throw new UnauthorizedException('Missing API key')
     }
 
@@ -26,6 +27,7 @@ export class ApiKeyGuard implements CanActivate{
     console.log('Tenant found:', !!tenant);
 
     if (!tenant){
+      logAuthDeny(req,'invalid_api_key','Invalid_api_key');
       throw new UnauthorizedException("Invalid API key")
     }
 

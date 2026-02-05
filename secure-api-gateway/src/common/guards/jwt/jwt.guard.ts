@@ -3,6 +3,8 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { Observable } from "rxjs";
+import { logJwtDeny } from "src/common/logger/guardlogger";
+import type { Request } from "express";
 
 
 @Injectable()
@@ -46,6 +48,7 @@ export class JwtGuard implements CanActivate{
         return true;
 
       } catch(error: any){
+        logJwtDeny(req,tenant.id,'Invalid_jwt');
         console.error('JWT Verification Error:', {
           error: error.message,
           code: error.code,

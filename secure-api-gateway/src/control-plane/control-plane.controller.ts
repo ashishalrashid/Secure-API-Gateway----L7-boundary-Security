@@ -5,6 +5,7 @@ import { AdminGuard } from './guards/admin.guard';
 import { Controller, UseGuards, Post ,Body, Param, Put, HttpException, HttpStatus, Get} from '@nestjs/common';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { json } from 'stream/consumers';
+import { logger } from 'src/common/logger/logger';
 
 @Controller('control-plane')
 @UseGuards(AdminGuard)
@@ -48,6 +49,12 @@ export class ControlPlaneController{
         .sadd('tenant:index', tenant.id)
         .exec();
 
+    logger.info({
+        plane:'control',
+        action:'create_tenant',
+        tenantId:body.id,
+    });
+
     return {
         status: 'tenant created',
         tenantId: tenant.id,
@@ -69,6 +76,12 @@ export class ControlPlaneController{
         const hash =this.hashApiKey(apikey);
 
         await redis.set(`tenant:byApiKey:${hash}`,tenantId);
+
+        logger.info({
+        plane:'control',
+        action:'rotate_key',
+        tenantId:tenantId,
+        });
 
         return {
             apikey,warning:'Store key , cannot be retrived again'
@@ -101,6 +114,12 @@ export class ControlPlaneController{
 
         await redis.set(tenantKey,JSON.stringify(tenant));
 
+        logger.info({
+        plane:'control',
+        action:'update_idp',
+        tenantId:tenantId,
+        });
+
         return {tenantId,idp:tenant.idp};
     }
 
@@ -126,6 +145,12 @@ export class ControlPlaneController{
         tenant.allowedRoutes =body.allowedRoutes;
 
         await redis.set(tenantKey,JSON.stringify(tenant));
+
+        logger.info({
+        plane:'control',
+        action:'update_routes',
+        allowedRoutes:tenant.allowedRoutes,
+        });
 
         return {tenantId,allowedRoutes:tenant.allowedRoutes};
     }

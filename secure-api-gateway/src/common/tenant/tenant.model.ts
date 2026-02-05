@@ -10,4 +10,9 @@ export interface Tenant{
     };
 
     allowedRoutes:string[];
+
+    rateLimit:{
+        windowSeconds:60,
+        maxRequests:100
+    }
 }
