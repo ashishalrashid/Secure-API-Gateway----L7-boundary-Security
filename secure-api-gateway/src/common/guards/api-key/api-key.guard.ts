@@ -11,12 +11,12 @@ export class ApiKeyGuard implements CanActivate{
   constructor(private TenantService:TenantService){}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    console.log('API KEY GUARD HIT');
+    // console.log('API KEY GUARD HIT');
     const req =context.switchToHttp().getRequest<Request>();
 
     const apiKey =req.headers['x-api-key'];
 
-    console.log('API Key check - apiKey present:', !!apiKey);
+    // console.log('API Key check - apiKey present:', !!apiKey);
 
     if (!apiKey  || typeof apiKey!=='string'){
       logAuthDeny(req,'invalid_api_key','missing');
@@ -25,7 +25,7 @@ export class ApiKeyGuard implements CanActivate{
 
     const tenant=await this.TenantService.findByApiKey(apiKey);
 
-    console.log('Tenant found:', !!tenant);
+    // console.log('Tenant found:', !!tenant);
 
     if (!tenant){
       logAuthDeny(req,'invalid_api_key','Invalid_api_key');

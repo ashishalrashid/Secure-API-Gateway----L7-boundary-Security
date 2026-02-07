@@ -10,9 +10,23 @@ async function bootstrap() {
   // console.log('JWKS:', process.env.IDP_JWKS_URI);
   // console.log('AUD:', process.env.IDP_AUDIENCE);
 
+  //CORS
+  app.enableCors({
+    origin: "http://localhost:3001",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Admin-Token",
+      "X-API-Key",
+    ],
+  });
+
   //middlware logging
   app.use(requestlogger);
   app.use(requestMetrics);
+
+
 
   await app.listen(process.env.PORT ?? 3000);
 }

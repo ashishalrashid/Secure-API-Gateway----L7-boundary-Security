@@ -25,7 +25,7 @@ export class JwtGuard implements CanActivate{
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    console.log('JWT GUARD HIT');  
+    // console.log('JWT GUARD HIT');  
     
     const req =context.switchToHttp().getRequest<Request>();
       const tenant =(req as any).tenant;
@@ -51,13 +51,13 @@ export class JwtGuard implements CanActivate{
       } catch(error: any){
         logJwtDeny(req,tenant.id,'Invalid_jwt');
         gatewayAuthFailuresTotal.inc();
-        console.error('JWT Verification Error:', {
-          error: error.message,
-          code: error.code,
-          tenantId: tenant.id,
-          expectedIssuer: tenant.idp.issuer,
-          expectedAudience: tenant.idp.audience,
-        });
+        // console.error('JWT Verification Error:', {
+        //   error: error.message,
+        //   code: error.code,
+        //   tenantId: tenant.id,
+        //   expectedIssuer: tenant.idp.issuer,
+        //   expectedAudience: tenant.idp.audience,
+        // });
         throw new UnauthorizedException("Invalid or expired JWT");
 
       }

@@ -10,6 +10,12 @@ export default function MetricsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper to construct URL safely
+  const getBackendUrl = (path: string) => {
+    const base = process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000";
+    return `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+  };
+
   async function loadAll() {
     if (!adminToken) {
       setError("Admin token is required");
@@ -19,8 +25,7 @@ export default function MetricsPage() {
     setError(null);
     try {
       const metricsRes = await fetch(
-        (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000") +
-          "/metrics",
+        getBackendUrl("metrics"),
         {
           headers: { "X-Admin-Token": adminToken },
         }
@@ -33,10 +38,7 @@ export default function MetricsPage() {
       const text = await metricsRes.text();
       setMetrics(text);
 
-      const healthRes = await fetch(
-        (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000") +
-          "/api/health"
-      );
+      const healthRes = await fetch(getBackendUrl("api/health"));
       setHealth(healthRes.ok ? "OK" : `${healthRes.status} ${healthRes.statusText}`);
     } catch (e: any) {
       setError(e.message);
