@@ -4,6 +4,7 @@ import { ControlPlaneModule } from './control-plane/control-plane.module';
 import { ControlPlaneController } from './control-plane/control-plane.controller';
 import { ConfigModule } from '@nestjs/config';
 import { TenantModule } from './common/tenant/tenant.module';
+import { MetricsController } from './metrics/metrics.controller';
 
 @Module({
   imports: [
@@ -11,7 +12,8 @@ import { TenantModule } from './common/tenant/tenant.module';
     ControlPlaneModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TenantModule,
+    
   ],
-  controllers: [ControlPlaneController],
+  controllers: [ControlPlaneController,MetricsController,],
 })
 export class AppModule {}

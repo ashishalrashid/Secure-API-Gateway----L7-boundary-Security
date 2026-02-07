@@ -5,6 +5,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { Observable } from "rxjs";
 import { logJwtDeny } from "src/common/logger/guardlogger";
 import type { Request } from "express";
+import { gatewayAuthFailuresTotal } from "src/common/metrics/metrics";
 
 
 @Injectable()
@@ -49,6 +50,7 @@ export class JwtGuard implements CanActivate{
 
       } catch(error: any){
         logJwtDeny(req,tenant.id,'Invalid_jwt');
+        gatewayAuthFailuresTotal.inc();
         console.error('JWT Verification Error:', {
           error: error.message,
           code: error.code,

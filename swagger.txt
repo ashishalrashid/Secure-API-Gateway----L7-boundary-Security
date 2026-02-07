@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Secure Multi-Tenant API Gateway
+  description: Control plane and data plane APIs for a multi-tenant API gateway.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: control-plane
+    description: Admin-only tenant and policy management
+  - name: gateway
+    description: Data plane entrypoint
+  - name: observability
+    description: Metrics and health
+
+components:
+  securitySchemes:
+    AdminToken:
+      type: apiKey
+      in: header
+      name: X-Admin-Token
+
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        idp:
+          $ref: "#/components/schemas/IdPConfig"
+        allowedRoutes:
+          type: array
+          items:
+            type: string
+        rateLimit:
+          $ref: "#/components/schemas/RateLimit"
+
+    IdPConfig:
+      type: object
+      properties:
+        issuer:
+          type: string
+        jwksUri:
+          type: string
+        audience:
+          type: string
+
+    RateLimit:
+      type: object
+      properties:
+        windowSeconds:
+          type: integer
+          example: 60
+        maxRequests:
+          type: integer
+          example: 100
+
+    CreateTenantRequest:
+      type: object
+      required: [id, name, idp, allowedRoutes]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        idp:
+          $ref: "#/components/schemas/IdPConfig"
+        allowedRoutes:
+          type: array
+          items:
+            type: string
+        rateLimit:
+          $ref: "#/components/schemas/RateLimit"
+
+    RotateKeyResponse:
+      type: object
+      properties:
+        apiKey:
+          type: string
+        warning:
+          type: string
+
+    UpdateRoutesRequest:
+      type: object
+      required: [allowedRoutes]
+      properties:
+        allowedRoutes:
+          type: array
+          items:
+            type: string
+
+    UpdateIdpRequest:
+      type: object
+      required: [issuer, jwksUri, audience]
+      properties:
+        issuer:
+          type: string
+        jwksUri:
+          type: string
+        audience:
+          type: string
+
+paths:
+
+  # --------------------
+  # CONTROL PLANE
+  # --------------------
+
+  /control-plane/tenants:
+    post:
+      tags: [control-plane]
+      summary: Create tenant
+      security:
+        - AdminToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTenantRequest"
+      responses:
+        "201":
+          description: Tenant created
+        "409":
+          description: Tenant already exists
+
+    get:
+      tags: [control-plane]
+      summary: List tenants
+      security:
+        - AdminToken: []
+      responses:
+        "200":
+          description: List of tenants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tenant"
+
+  /control-plane/tenants/{id}/apikey:
+    post:
+      tags: [control-plane]
+      summary: Rotate tenant API key
+      security:
+        - AdminToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: API key generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RotateKeyResponse"
+        "404":
+          description: Tenant not found
+
+  /control-plane/tenants/{id}/routes:
+    put:
+      tags: [control-plane]
+      summary: Update tenant allowed routes
+      security:
+        - AdminToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoutesRequest"
+      responses:
+        "200":
+          description: Routes updated
+
+  /control-plane/tenants/{id}/idp:
+    put:
+      tags: [control-plane]
+      summary: Update tenant IdP configuration
+      security:
+        - AdminToken: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIdpRequest"
+      responses:
+        "200":
+          description: IdP updated
+
+  # --------------------
+  # DATA PLANE
+  # --------------------
+
+  /api/{proxyPath}:
+    get:
+      tags: [gateway]
+      summary: Proxy GET request
+      security:
+        - ApiKey: []
+      parameters:
+        - in: path
+          name: proxyPath
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proxied response
+        "401":
+          description: Unauthorized
+        "403":
+          description: Route not allowed
+        "429":
+          description: Rate limited
+
+    post:
+      tags: [gateway]
+      summary: Proxy POST request
+      security:
+        - ApiKey: []
+      parameters:
+        - in: path
+          name: proxyPath
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proxied response
+
+  /api/health:
+    get:
+      tags: [gateway]
+      summary: Gateway health check
+      responses:
+        "200":
+          description: OK
+
+  # --------------------
+  # OBSERVABILITY
+  # --------------------
+
+  /metrics:
+    get:
+      tags: [observability]
+      summary: Prometheus metrics
+      security:
+        - AdminToken: []
+      responses:
+        "200":
+          description: Metrics in Prometheus text format

@@ -3,6 +3,7 @@ import { redis } from "src/common/redis/redis.client";
 import type { Request } from "express";
 import { logRateLimit } from "src/common/logger/guardlogger";
 import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { gatewayRateLimitedTotal } from "src/common/metrics/metrics";
 
 const DEFAULT_WINDOW_SECONDS =60;
 const DEFAULT_MAX_REQUESTS=100;
@@ -44,6 +45,7 @@ export class RateLimitGuard implements CanActivate{
 
     if (count>maxRequests){
       logRateLimit(req, tenantId);
+      gatewayRateLimitedTotal.inc();
       throw new HttpException('rate limit exceeded',HttpStatus.TOO_MANY_REQUESTS,);
     }
     return true;

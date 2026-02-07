@@ -17,7 +17,7 @@ const proxy = httpProxy.createProxyServer({});
 
 @Controller()
 // @UseGuards(ApiKeyGuard, JwtGuard, RouteGuard, RateLimitGuard)
-@UseGuards(ApiKeyGuard,JwtGuard,RouteGuard,RateLimitGuard)
+@UseGuards(ApiKeyGuard,RouteGuard,JwtGuard,RateLimitGuard)
 export class GatewayController {
   private readonly upstream = 'http://localhost:4000';
 

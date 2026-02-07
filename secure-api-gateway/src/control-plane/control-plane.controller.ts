@@ -6,6 +6,7 @@ import { Controller, UseGuards, Post ,Body, Param, Put, HttpException, HttpStatu
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { json } from 'stream/consumers';
 import { logger } from 'src/common/logger/logger';
+import { controlMutationsTotal } from 'src/common/metrics/metrics';
 
 @Controller('control-plane')
 @UseGuards(AdminGuard)
@@ -62,7 +63,7 @@ export class ControlPlaneController{
     }
 
     //rotate and create api keys
-    @Post('tenants/:id/apikey')
+    @Post('tenants/:id/apiKey')
     async rotateApiKey(@Param('id') tenantId:string){
 
         const tenantKey= `tenant:${tenantId}`;
@@ -72,8 +73,8 @@ export class ControlPlaneController{
             return {error:'tenant not found'};
         }
 
-        const apikey =this.generateApiKey();
-        const hash =this.hashApiKey(apikey);
+        const apiKey =this.generateApiKey();
+        const hash =this.hashApiKey(apiKey);
 
         await redis.set(`tenant:byApiKey:${hash}`,tenantId);
 
@@ -83,8 +84,10 @@ export class ControlPlaneController{
         tenantId:tenantId,
         });
 
+        controlMutationsTotal.inc({ action: 'rotate_apiKey' });
+
         return {
-            apikey,warning:'Store key , cannot be retrived again'
+            apiKey,warning:'Store key , cannot be retrived again'
         };
     }
     //update idp
@@ -120,6 +123,8 @@ export class ControlPlaneController{
         tenantId:tenantId,
         });
 
+        controlMutationsTotal.inc({ action: 'update_idp' });
+
         return {tenantId,idp:tenant.idp};
     }
 
@@ -151,6 +156,7 @@ export class ControlPlaneController{
         action:'update_routes',
         allowedRoutes:tenant.allowedRoutes,
         });
+        controlMutationsTotal.inc({ action: 'update_routes' });
 
         return {tenantId,allowedRoutes:tenant.allowedRoutes};
     }

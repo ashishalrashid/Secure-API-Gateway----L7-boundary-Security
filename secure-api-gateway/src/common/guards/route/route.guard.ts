@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { logRouteDeny } from 'src/common/logger/guardlogger';
+import { gatewayRouteDenialsTotal } from 'src/common/metrics/metrics';
 
 @Injectable()
 export class RouteGuard implements CanActivate {
@@ -28,6 +29,7 @@ export class RouteGuard implements CanActivate {
 
     if (!tenant.allowedRoutes.some((r: string) => path.startsWith(r))) {
       logRouteDeny(req,tenant.id);
+      gatewayRouteDenialsTotal.inc();
       throw new ForbiddenException('Route not allowed for tenant');
     }
 

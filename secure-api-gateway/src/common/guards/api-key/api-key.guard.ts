@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import type { Request } from "express";
 import { TenantService } from "src/common/tenant/tenant.service";
 import { logAuthDeny } from "src/common/logger/guardlogger";
+import { gatewayAuthFailuresTotal } from "src/common/metrics/metrics";
 
 
 @Injectable()
@@ -28,6 +29,7 @@ export class ApiKeyGuard implements CanActivate{
 
     if (!tenant){
       logAuthDeny(req,'invalid_api_key','Invalid_api_key');
+      gatewayAuthFailuresTotal.inc()
       throw new UnauthorizedException("Invalid API key")
     }
 
