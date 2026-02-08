@@ -5,6 +5,7 @@ import { ControlPlaneController } from './control-plane/control-plane.controller
 import { ConfigModule } from '@nestjs/config';
 import { TenantModule } from './common/tenant/tenant.module';
 import { MetricsController } from './metrics/metrics.controller';
+import { TenantController } from './tenant/tenant.controller';
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { MetricsController } from './metrics/metrics.controller';
     TenantModule,
     
   ],
-  controllers: [ControlPlaneController,MetricsController,],
+  controllers: [ControlPlaneController,MetricsController,TenantController,],
 })
 export class AppModule {}
