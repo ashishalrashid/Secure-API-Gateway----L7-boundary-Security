@@ -48,18 +48,16 @@ export class JwtGuard implements CanActivate{
         (req as any).identity =payload;
         return true;
 
-      } catch(error: any){
-        logJwtDeny(req,tenant.id,'Invalid_jwt');
-        gatewayAuthFailuresTotal.inc();
-        // console.error('JWT Verification Error:', {
-        //   error: error.message,
-        //   code: error.code,
-        //   tenantId: tenant.id,
-        //   expectedIssuer: tenant.idp.issuer,
-        //   expectedAudience: tenant.idp.audience,
-        // });
-        throw new UnauthorizedException("Invalid or expired JWT");
+      } catch (error: any) {
+        logJwtDeny(req, tenant.id, 'invalid_jwt');
 
+        gatewayAuthFailuresTotal.inc({
+          tenantId: tenant.id,
+          reason: 'invalid_jwt',
+        });
+
+        throw new UnauthorizedException("Invalid or expired JWT");
       }
+
   }
 }

@@ -29,7 +29,11 @@ export class ApiKeyGuard implements CanActivate{
 
     if (!tenant){
       logAuthDeny(req,'invalid_api_key','Invalid_api_key');
-      gatewayAuthFailuresTotal.inc({tenantId:"Unknown"})
+      gatewayAuthFailuresTotal.inc({
+          tenantId: "unknown",
+          reason: "invalid_api_key",
+        });
+
       throw new UnauthorizedException("Invalid API key")
     }
 
