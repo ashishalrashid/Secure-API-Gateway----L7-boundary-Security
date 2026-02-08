@@ -45,7 +45,11 @@ export class RateLimitGuard implements CanActivate{
 
     if (count>maxRequests){
       logRateLimit(req, tenantId);
-      gatewayRateLimitedTotal.inc();
+
+      gatewayRateLimitedTotal.inc({
+        tenantId,
+      });
+
       throw new HttpException('rate limit exceeded',HttpStatus.TOO_MANY_REQUESTS,);
     }
     return true;

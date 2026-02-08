@@ -29,7 +29,10 @@ export class RouteGuard implements CanActivate {
 
     if (!tenant.allowedRoutes.some((r: string) => path.startsWith(r))) {
       logRouteDeny(req,tenant.id);
-      gatewayRouteDenialsTotal.inc();
+      gatewayRouteDenialsTotal.inc({
+      tenantId:tenant.id,
+      });
+
       throw new ForbiddenException('Route not allowed for tenant');
     }
 
