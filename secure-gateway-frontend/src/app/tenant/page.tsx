@@ -5,6 +5,8 @@ import { useState } from "react";
 const BASE_URL =
   process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000";
 
+/* ---------------- TYPES ---------------- */
+
 type TenantInfo = {
   id: string;
   name: string;
@@ -22,6 +24,8 @@ type TenantMetrics = {
     internalErrors: number;
   };
 };
+
+/* ---------------- PAGE ---------------- */
 
 export default function TenantDashboard() {
   const [apiKey, setApiKey] = useState("");
@@ -58,107 +62,100 @@ export default function TenantDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 py-10 px-4 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-100">
+    <div className="space-y-10 max-w-7xl">
+      {/* HEADER */}
+      <div>
+        <h2 className="font-display text-xl">
           Tenant Dashboard
-        </h1>
-        <p className="text-slate-400">
-          Monitor your gateway usage, health, and access limits.
+        </h2>
+        <p className="text-xs text-muted mt-1">
+          Tenant-scoped usage and access metrics
         </p>
       </div>
 
-      {/* API Key Input Section */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 shadow-sm backdrop-blur-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex-1 space-y-2">
-            <label htmlFor="apiKey" className="text-sm font-medium text-slate-300">
-              API Key
-            </label>
-            <input
-              id="apiKey"
-              type="password"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-              placeholder="Paste your tenant API key (sk_...)"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
+      {/* AUTH */}
+      <div className="arch-panel space-y-4 max-w-2xl">
+        <SectionTitle>Authentication</SectionTitle>
+
+        <Field label="X-API-Key">
+          <input
+            type="password"
+            className="input"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="sk_live_••••••••"
+          />
+        </Field>
+
+        <div className="flex justify-between items-center">
+          <p className="text-[11px] text-muted">
+            Used to scope all tenant requests
+          </p>
+
           <button
             onClick={loadDashboard}
             disabled={!apiKey || loading}
-            className="inline-flex h-[42px] items-center justify-center gap-2 rounded-lg bg-emerald-600 px-6 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            className="btn-primary text-sm"
           >
-            {loading ? <Spinner /> : "Load Data"}
+            {loading ? "Loading…" : "Load dashboard"}
           </button>
         </div>
-        {error && (
-          <div className="mt-4 rounded-md bg-rose-950/30 p-3 text-sm text-rose-400 border border-rose-900/50">
-            Error: {error}
-          </div>
-        )}
+
+        {error && <Notice kind="error">{error}</Notice>}
       </div>
 
-      {/* Loading State */}
+      {/* LOADING */}
       {loading && (
-        <div className="animate-pulse space-y-8">
-          <div className="h-48 rounded-xl bg-slate-800/50" />
+        <div className="space-y-4">
+          <SkeletonPanel />
           <SkeletonGrid />
         </div>
       )}
 
-      {/* Dashboard Content */}
+      {/* CONTENT */}
       {!loading && tenant && metrics && (
-        <div className="space-y-8">
-          {/* Tenant Info Card */}
-          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 shadow-sm">
-            <div className="border-b border-slate-800 bg-slate-900/80 px-6 py-4">
-              <h3 className="font-semibold text-slate-200">Tenant Overview</h3>
+        <div className="space-y-10">
+          {/* TENANT INFO */}
+          <div className="arch-panel space-y-6">
+            <SectionTitle>Tenant</SectionTitle>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Info label="Tenant ID" mono>
+                {tenant.id}
+              </Info>
+              <Info label="Name">
+                {tenant.name}
+              </Info>
             </div>
-            <div className="grid gap-6 p-6 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Tenant ID
-                </p>
-                <p className="mt-1 font-mono text-sm text-slate-300">{tenant.id}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Name
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-200">{tenant.name}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
-                  Allowed Routes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {tenant.allowedRoutes.map((r) => (
-                    <span
-                      key={r}
-                      className="inline-flex items-center rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300 ring-1 ring-inset ring-slate-700/50"
-                    >
-                      {r}
-                    </span>
-                  ))}
-                </div>
+
+            <div>
+              <p className="text-[11px] text-muted uppercase tracking-wide mb-2">
+                Allowed routes
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tenant.allowedRoutes.map((r) => (
+                  <span
+                    key={r}
+                    className="px-2 py-0.5 text-[11px] rounded bg-white/5 text-muted font-mono"
+                  >
+                    {r}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Metrics Grid */}
-          <div>
-            <h3 className="mb-4 text-lg font-medium text-slate-200">
-              Usage Metrics
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <MetricCard label="Total Requests" value={metrics.requests.total} />
-              <MetricCard label="Auth Failures" value={metrics.requests.authFailures} danger />
-              <MetricCard label="Route Denials" value={metrics.requests.routeDenials} />
-              <MetricCard label="Rate Limited" value={metrics.requests.rateLimited} />
-              <MetricCard label="Upstream Errors" value={metrics.requests.upstreamErrors} danger />
-              <MetricCard label="Internal Errors" value={metrics.requests.internalErrors} danger />
+          {/* METRICS */}
+          <div className="space-y-4">
+            <SectionTitle>Usage metrics</SectionTitle>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              <Metric label="Total" value={metrics.requests.total} />
+              <Metric label="Auth failures" value={metrics.requests.authFailures} danger />
+              <Metric label="Route denied" value={metrics.requests.routeDenials} />
+              <Metric label="Rate limited" value={metrics.requests.rateLimited} />
+              <Metric label="Upstream errors" value={metrics.requests.upstreamErrors} danger />
+              <Metric label="Internal errors" value={metrics.requests.internalErrors} danger />
             </div>
           </div>
         </div>
@@ -167,9 +164,55 @@ export default function TenantDashboard() {
   );
 }
 
-/* ------------------ UI Components ------------------ */
+/* ---------------- COMPONENTS ---------------- */
 
-function MetricCard({
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs uppercase tracking-widest text-muted">
+      {children}
+    </h3>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="space-y-1 block">
+      <span className="text-[11px] text-muted uppercase tracking-wide">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function Info({
+  label,
+  children,
+  mono,
+}: {
+  label: string;
+  children: React.ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] text-muted uppercase tracking-wide">
+        {label}
+      </p>
+      <p className={`mt-1 text-sm ${mono ? "font-mono" : ""}`}>
+        {children}
+      </p>
+    </div>
+  );
+}
+
+function Metric({
   label,
   value,
   danger,
@@ -180,33 +223,53 @@ function MetricCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border p-5 transition-all hover:shadow-md ${
-        danger
-          ? "border-rose-900/50 bg-rose-950/10 hover:border-rose-800/50"
-          : "border-slate-800 bg-slate-900/50 hover:border-slate-700"
-      }`}
+      className={`
+        arch-panel text-center
+        ${danger ? "text-red-400" : ""}
+      `}
     >
-      <dt className="truncate text-sm font-medium text-slate-400">{label}</dt>
-      <dd className={`mt-2 text-3xl font-bold tracking-tight ${danger ? "text-rose-400" : "text-slate-100"}`}>
+      <p className="text-[11px] text-muted uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-display">
         {value.toLocaleString()}
-      </dd>
+      </p>
     </div>
   );
 }
 
-function Spinner() {
+function Notice({
+  kind,
+  children,
+}: {
+  kind: "error" | "success";
+  children: React.ReactNode;
+}) {
+  const color =
+    kind === "error" ? "text-red-400" : "text-acid";
+
   return (
-    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+    <div
+      className={`text-xs ${color} border border-white/10 rounded-md px-3 py-2`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SkeletonPanel() {
+  return (
+    <div className="arch-panel h-32 animate-pulse" />
   );
 }
 
 function SkeletonGrid() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="h-28 rounded-xl bg-slate-800/50 animate-pulse"
+          className="arch-panel h-24 animate-pulse"
         />
       ))}
     </div>

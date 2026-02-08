@@ -17,6 +17,7 @@ export default function GatewayConsolePage() {
     setLoading(true);
     setStatus(null);
     setResponseText("");
+
     try {
       const res = await apiKeyFetch(`/${proxyPath}`, {
         apiKey,
@@ -27,9 +28,9 @@ export default function GatewayConsolePage() {
             ? { "Content-Type": "application/json" }
             : undefined,
       });
+
       setStatus(res.status);
-      const text = await res.text();
-      setResponseText(text);
+      setResponseText(await res.text());
     } catch (err: any) {
       setResponseText(err.message);
     } finally {
@@ -38,92 +39,205 @@ export default function GatewayConsolePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Gateway Console</h2>
-        <p className="text-[11px] text-slate-500">
-          Sends requests to /api/&lt;proxyPath&gt; with X-API-Key.
-        </p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div className="space-y-1">
+          <h2 className="font-display text-xl">
+            Gateway Console
+          </h2>
+          <p className="text-xs text-muted">
+            Send authenticated requests through the data plane
+          </p>
+        </div>
+
+        <span className="text-[11px] text-muted">
+          Target: <span className="text-acid">/api/&lt;proxyPath&gt;</span>
+        </span>
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs"
-      >
-        <div className="grid grid-cols-4 gap-3">
-          <label className="col-span-2">
-            X-API-Key
+      {/* Main grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-8">
+        {/* REQUEST */}
+        <form
+          onSubmit={handleSend}
+          className="arch-panel space-y-5"
+        >
+          <SectionTitle>Request</SectionTitle>
+
+          <Field label="X-API-Key">
             <input
               type="password"
-              className="mt-1 w-full rounded-md bg-slate-950 border border-slate-700 px-2 py-1"
+              className="input"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               required
             />
-          </label>
-          <label className="col-span-1">
-            Method
-            <select
-              className="mt-1 w-full rounded-md bg-slate-950 border border-slate-700 px-2 py-1"
-              value={method}
-              onChange={(e) => setMethod(e.target.value as "GET" | "POST")}
-            >
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-            </select>
-          </label>
-          <label className="col-span-1">
-            Proxy path
-            <input
-              className="mt-1 w-full rounded-md bg-slate-950 border border-slate-700 px-2 py-1"
-              value={proxyPath}
-              onChange={(e) => setProxyPath(e.target.value)}
-              placeholder="api/service-a/foo"
-              required
-            />
-          </label>
-        </div>
+          </Field>
 
-        {method === "POST" && (
-          <label className="block">
-            JSON body
-            <textarea
-              className="mt-1 w-full rounded-md bg-slate-950 border border-slate-700 px-2 py-1 font-mono text-[11px] min-h-[100px]"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </label>
-        )}
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Method">
+              <select
+                className="input select"
+                value={method}
+                onChange={(e) =>
+                  setMethod(e.target.value as "GET" | "POST")
+                }
+              >
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+              </select>
+            </Field>
 
-        <button
-          type="submit"
-          className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? "Sending..." : "Send request"}
-        </button>
-      </form>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-slate-200">Status</h3>
-            <span className="text-[11px] text-slate-400">
-              {status ?? "—"}
-            </span>
+            <Field label="Proxy path" className="col-span-2">
+              <input
+                className="input font-mono"
+                value={proxyPath}
+                onChange={(e) => setProxyPath(e.target.value)}
+                required
+              />
+            </Field>
           </div>
-          <p className="text-[11px] text-slate-500">
-            Typical codes: 200 OK, 401 Unauthorized, 403 Forbidden, 429 Too
-            Many Requests.
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs">
-          <h3 className="text-sm font-medium text-slate-200 mb-2">Response</h3>
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-slate-200">
-            {responseText || "No response yet."}
-          </pre>
+
+          {method === "POST" && (
+            <Field label="JSON body">
+              <textarea
+                className="textarea"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+              />
+            </Field>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-muted">
+              Uses <code>X-API-Key</code> header
+            </span>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary text-sm"
+            >
+              {loading ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </form>
+
+        {/* RESPONSE */}
+        <div className="arch-panel flex flex-col gap-4">
+          <SectionTitle>Response</SectionTitle>
+
+          {/* Status row */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted">
+              HTTP Status
+            </span>
+            <StatusBadge status={status} />
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 rounded-md border border-white/10 bg-black/40 p-3 overflow-auto">
+            <pre className="text-[11px] font-mono text-slate-200 whitespace-pre-wrap break-words">
+              {responseText || "// no response yet"}
+            </pre>
+          </div>
+
+          {/* Docs */}
+          <div className="pt-2 border-t border-white/10 space-y-1">
+            <p className="text-[11px] text-muted">
+              HTTP status code references:
+            </p>
+            <ul className="text-[11px] space-y-0.5">
+              <li>
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200"
+                  target="_blank"
+                  className="link"
+                >
+                  200 OK — MDN
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+                  target="_blank"
+                  className="link"
+                >
+                  401 Unauthorized — MDN
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403"
+                  target="_blank"
+                  className="link"
+                >
+                  403 Forbidden — MDN
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+                  target="_blank"
+                  className="link"
+                >
+                  429 Too Many Requests — MDN
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/* ---------------- PRIMITIVES ---------------- */
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold tracking-widest uppercase text-muted">
+      {children}
+    </h3>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={`space-y-1 ${className}`}>
+      <span className="text-[11px] text-muted uppercase tracking-wide">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function StatusBadge({ status }: { status: number | null }) {
+  if (!status) {
+    return <span className="text-xs text-muted">—</span>;
+  }
+
+  const ok = status >= 200 && status < 300;
+
+  return (
+    <span
+      className={`
+        px-2 py-0.5 rounded text-xs font-mono
+        border border-white/10
+        ${ok ? "text-acid" : "text-red-400"}
+      `}
+    >
+      {status}
+    </span>
   );
 }

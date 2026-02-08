@@ -1,45 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminFetch } from "@/lib/api";
 
 export default function MetricsPage() {
   const [adminToken, setAdminToken] = useState("");
   const [metrics, setMetrics] = useState("");
-  const [health, setHealth] = useState<string | null>(null);
+  const [health, setHealth] = useState<"OK" | string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper to construct URL safely
   const getBackendUrl = (path: string) => {
-    const base = process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000";
+    const base =
+      process.env.NEXT_PUBLIC_GATEWAY_API_URL ??
+      "http://localhost:3000";
     return `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
   };
 
   async function loadAll() {
     if (!adminToken) {
-      setError("Admin token is required");
+      setError("Admin token required");
       return;
     }
+
     setLoading(true);
     setError(null);
+
     try {
-      const metricsRes = await fetch(
-        getBackendUrl("metrics"),
-        {
-          headers: { "X-Admin-Token": adminToken },
-        }
-      );
+      const metricsRes = await fetch(getBackendUrl("metrics"), {
+        headers: { "X-Admin-Token": adminToken },
+      });
+
       if (!metricsRes.ok) {
         throw new Error(
           `Metrics: ${metricsRes.status} ${metricsRes.statusText}`
         );
       }
-      const text = await metricsRes.text();
-      setMetrics(text);
+
+      setMetrics(await metricsRes.text());
 
       const healthRes = await fetch(getBackendUrl("api/health"));
-      setHealth(healthRes.ok ? "OK" : `${healthRes.status} ${healthRes.statusText}`);
+      setHealth(
+        healthRes.ok
+          ? "OK"
+          : `${healthRes.status} ${healthRes.statusText}`
+      );
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -48,73 +52,185 @@ export default function MetricsPage() {
   }
 
   useEffect(() => {
-    if (adminToken) {
-      void loadAll();
-    }
+    if (adminToken) void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminToken]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Observability</h2>
+    <div className="space-y-10">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-display text-xl">
+            Observability
+          </h2>
+          <p className="text-xs text-muted mt-1">
+            Gateway health and Prometheus metrics
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-1 space-y-4">
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs space-y-3">
-            <h3 className="text-sm font-medium text-slate-200">
-              Admin access
-            </h3>
-            <label className="text-xs text-slate-400">
-              X-Admin-Token
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-10">
+        {/* LEFT: ACCESS + STATUS */}
+        <div className="space-y-6">
+          {/* Admin access */}
+          <div className="arch-panel space-y-4">
+            <SectionTitle>Admin access</SectionTitle>
+
+            <Field label="X-Admin-Token">
               <input
                 type="password"
-                className="mt-1 w-full rounded-md bg-slate-950 border border-slate-700 px-2 py-1"
+                className="input"
                 value={adminToken}
                 onChange={(e) => setAdminToken(e.target.value)}
               />
-            </label>
+            </Field>
+
             <button
               onClick={loadAll}
-              className="mt-2 w-full rounded-md bg-slate-800 px-3 py-1 text-[11px] text-slate-100 hover:bg-slate-700 disabled:opacity-50"
               disabled={loading || !adminToken}
+              className="btn-primary text-sm w-full"
             >
-              {loading ? "Refreshing..." : "Refresh metrics"}
+              {loading ? "Refreshing…" : "Refresh metrics"}
             </button>
+
             {error && (
-              <p className="text-[11px] text-rose-400 bg-rose-950/40 border border-rose-800 rounded-md px-2 py-1">
-                {error}
-              </p>
+              <Notice kind="error">{error}</Notice>
             )}
           </div>
 
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs">
-            <h3 className="text-sm font-medium text-slate-200 mb-1">Health</h3>
-            <p
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${
-                health === "OK"
-                  ? "bg-emerald-900/50 text-emerald-300 border border-emerald-700"
-                  : "bg-rose-900/50 text-rose-300 border border-rose-700"
-              }`}
-            >
-              {health ?? "Unknown"}
+          {/* Health */}
+          <div className="arch-panel space-y-3">
+            <SectionTitle>Gateway health</SectionTitle>
+
+            <HealthIndicator status={health} />
+
+            <p className="text-[11px] text-muted">
+              Sourced from <code>/api/health</code>
             </p>
-            <p className="mt-2 text-[11px] text-slate-500">
-              Uses <code>/api/health</code> from the gateway.
-            </p>
+          </div>
+
+          {/* Docs */}
+          <div className="arch-panel space-y-2">
+            <SectionTitle>References</SectionTitle>
+            <ul className="text-[11px] space-y-1">
+              <li>
+                <a
+                  href="https://prometheus.io/docs/concepts/metric_types/"
+                  target="_blank"
+                  className="link"
+                >
+                  Prometheus metric types
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://prometheus.io/docs/practices/naming/"
+                  target="_blank"
+                  className="link"
+                >
+                  Prometheus naming conventions
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="md:col-span-2 rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-xs">
-          <h3 className="text-sm font-medium text-slate-200 mb-2">
-            Prometheus metrics
-          </h3>
-          <pre className="max-h-[500px] overflow-auto whitespace-pre font-mono text-[11px] text-slate-200">
-            {metrics || "# No metrics loaded yet."}
-          </pre>
+        {/* RIGHT: METRICS */}
+        <div className="arch-panel flex flex-col">
+          <SectionTitle>Raw Prometheus metrics</SectionTitle>
+
+          <div className="mt-3 flex-1 rounded-md border border-white/10 bg-black/50 overflow-auto">
+            <pre className="p-4 text-[11px] font-mono text-slate-200 whitespace-pre">
+              {metrics || "# Metrics not loaded"}
+            </pre>
+          </div>
+
+          <p className="mt-3 text-[11px] text-muted">
+            Exposed for scraping by Prometheus-compatible collectors
+          </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------------- COMPONENTS ---------------- */
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs uppercase tracking-widest text-muted">
+      {children}
+    </h3>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="space-y-1">
+      <span className="text-[11px] text-muted uppercase tracking-wide">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function HealthIndicator({
+  status,
+}: {
+  status: string | null;
+}) {
+  if (!status) {
+    return (
+      <span className="text-xs text-muted">
+        Unknown
+      </span>
+    );
+  }
+
+  const ok = status === "OK";
+
+  return (
+    <div
+      className={`
+        inline-flex items-center gap-2
+        px-3 py-1 rounded-full text-xs
+        border border-white/10
+        ${ok ? "text-acid" : "text-red-400"}
+      `}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          ok ? "bg-acid" : "bg-red-400"
+        }`}
+      />
+      {status}
+    </div>
+  );
+}
+
+function Notice({
+  kind,
+  children,
+}: {
+  kind: "error" | "success";
+  children: React.ReactNode;
+}) {
+  const color =
+    kind === "error" ? "text-red-400" : "text-acid";
+
+  return (
+    <div
+      className={`text-xs ${color} border border-white/10 rounded-md px-3 py-2`}
+    >
+      {children}
     </div>
   );
 }
