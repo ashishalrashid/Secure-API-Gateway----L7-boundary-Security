@@ -5,14 +5,14 @@ export default function HomePage() {
     <main className="relative min-h-screen overflow-hidden">
 
       {/* HERO */}
-      <section className="relative z-10 max-w-7xl mx-auto px-8 pt-32 pb-36">
+      <section className="relative z-10 max-w-7xl mx-auto px-8 pt-14 pb-24">
         <div className="max-w-3xl space-y-8">
           <p className="text-xs tracking-[0.3em] text-acid">
             SECURE INFRASTRUCTURE LAYER
           </p>
 
           <h1 className="text-6xl leading-[1.05] font-display">
-            Multi-tenant API
+            Multi tenant API
             <br />
             <span className="text-acid glow">
               Gateway Platform
@@ -20,8 +20,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-lg text-muted max-w-xl">
-            A production-grade edge layer enforcing isolation, authentication,
-            rate limits, and observability — without trusting clients or leaking
+            A production grade edge layer enforcing isolation, authentication,
+            rate limits and observability, without trusting clients or leaking
             control.
           </p>
 
@@ -37,30 +37,33 @@ export default function HomePage() {
       </section>
 
       {/* IMPACT STATS */}
-      <section className="relative z-10 max-w-7xl mx-auto px-8 pb-32">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-14">
-          <Stat
-            value="0"
-            label="shared secrets"
-            description="Tenants never reuse credentials or keys"
-          />
-          <Stat
-            value="100%"
-            label="request attribution"
-            description="Every request mapped to tenant and route"
-          />
-          <Stat
-            value="Per-tenant"
-            label="rate limits"
-            description="One client cannot degrade another"
-          />
-          <Stat
-            value="Single"
-            label="control plane"
-            description="Only admins can mutate gateway state"
-          />
-        </div>
-      </section>
+<section className="relative z-10 max-w-7xl mx-auto px-8 pb-32">
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-14">
+    <Stat
+      value="Secure"
+      label="Asymmetric JWT validation"
+      description="Public key verification via JWKS; no shared signing secrets."
+    />
+    <Stat
+      value="Stateless"
+      label="data plane"
+      description="No request affinity or in memory state; due to Redis backed externalization."
+    />
+    <Stat
+      value="Scalable"
+      label="Horizontally"
+      description="Multiple gatway instances can be added without coordination"
+    />
+    <Stat
+      value="Structured"
+      label="observability"
+      description="Per tenant metrics, latency histograms, and error attribution."
+    />
+    
+    
+  </div>
+</section>
+
 
       {/* DIVIDER */}
       <SectionDivider label="FAILURE MODES" />
@@ -70,7 +73,7 @@ export default function HomePage() {
         <Failure
           index="01"
           title="No isolation"
-          body="Shared credentials and weak attribution cause cross-tenant data exposure."
+          body="Shared credentials and weak attribution cause cross tenant data exposure."
         />
         <Failure
           index="02"
@@ -80,7 +83,7 @@ export default function HomePage() {
         <Failure
           index="03"
           title="Blind operations"
-          body="Without tenant-level metrics, failures cannot be explained or debugged."
+          body="Without tenant level metrics, failures cannot be explained or debugged."
         />
       </section>
 
@@ -95,16 +98,16 @@ export default function HomePage() {
           items={[
             "Tenant provisioning",
             "Key rotation",
-            "Route allow-lists",
-            "Admin-only mutation",
+            "Route allow lists",
+            "Admin only mutation",
           ]}
         />
         <Architecture
           title="Data Plane"
           accent="cyan"
           items={[
-            "High-throughput proxying",
-            "JWT & API-key enforcement",
+            "High throughput proxying",
+            "JWT & API key enforcement",
             "Rate limiting",
             "Metrics & structured logs",
           ]}
@@ -118,7 +121,7 @@ export default function HomePage() {
             Designed like real infrastructure
           </h3>
           <p className="text-muted max-w-xl">
-            This project prioritizes correctness, blast-radius containment,
+            This project prioritizes correctness, blast radius containment,
             and observability — the things that matter after your first outage.
           </p>
 
