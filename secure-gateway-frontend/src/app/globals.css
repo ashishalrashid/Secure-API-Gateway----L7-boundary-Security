@@ -1,42 +1,157 @@
 @import "tailwindcss";
 
+/* ---------------- ROOT THEME ---------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #05070b;
+  --panel: #0b1020;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: rgba(255,255,255,0.08);
+
+  --acid: #1cff9a;
+  --cyan: #22d3ee;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ---------------- BASE ---------------- */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
 
+/* ---------------- BACKGROUNDS ---------------- */
 
-/* Subtle grid background */
-.cyber-grid {
+.bg-grid {
   background-image:
     linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
+  background-size: 64px 64px;
+  opacity: 0.08;
 }
 
-/* Emerald glow utility */
-.glow-emerald {
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+.bg-radial {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(28,255,154,0.12), transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(34,211,238,0.08), transparent 45%);
+}
+
+/* ---------------- TYPOGRAPHY ---------------- */
+
+.font-display {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.text-acid {
+  color: var(--acid);
+}
+
+/* ---------------- EFFECTS ---------------- */
+
+.glow {
   text-shadow:
-    0 0 12px rgba(16,185,129,0.45),
-    0 0 24px rgba(16,185,129,0.25);
+    0 0 6px rgba(28,255,154,0.18);
+}
+
+
+/* ---------------- BUTTONS ---------------- */
+
+.btn-primary {
+  padding: 0.75rem 1.75rem;
+  background: var(--acid);
+  color: #001a10;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 0 30px rgba(28,255,154,0.45);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 50px rgba(28,255,154,0.6);
+}
+
+.btn-ghost {
+  padding: 0.75rem 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  transition: border .15s ease, color .15s ease;
+}
+
+.btn-ghost:hover {
+  border-color: var(--acid);
+  color: var(--acid);
+}
+
+/* ---------------- PANELS ---------------- */
+
+.arch-panel {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.05),
+    rgba(255,255,255,0.01)
+  );
+  border: 1px solid var(--border);
+  padding: 2.5rem;
+  border-radius: 0.75rem;
+}
+
+.arch-acid {
+  box-shadow: inset 0 0 0 1px rgba(28,255,154,0.25);
+}
+
+.arch-cyan {
+  box-shadow: inset 0 0 0 1px rgba(34,211,238,0.25);
+}
+
+/* ---------------- DIVIDERS ---------------- */
+
+.divider-line {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--acid),
+    transparent
+  );
+}
+
+.divider-label {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--acid);
+}
+
+/* ---------------- CTA ---------------- */
+
+.cta-panel {
+  background: radial-gradient(
+    circle at top,
+    rgba(28,255,154,0.15),
+    transparent 60%
+  ), var(--panel);
+  border: 1px solid var(--border);
+  padding: 4rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }

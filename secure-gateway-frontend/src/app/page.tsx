@@ -2,226 +2,208 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="relative space-y-32">
-      {/* Ambient background */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 cyber-grid opacity-[0.06]" />
+    <main className="relative min-h-screen overflow-hidden">
 
-      {/* Hero */}
-      <section className="relative max-w-4xl space-y-8">
-        <span className="inline-block text-xs tracking-widest text-emerald-400/80 uppercase">
-          Secure Infrastructure Layer
-        </span>
+      {/* HERO */}
+      <section className="relative z-10 max-w-7xl mx-auto px-8 pt-32 pb-36">
+        <div className="max-w-3xl space-y-8">
+          <p className="text-xs tracking-[0.3em] text-acid">
+            SECURE INFRASTRUCTURE LAYER
+          </p>
 
-        <h1 className="text-5xl font-semibold tracking-tight leading-tight">
-          Secure, observable,
-          <br />
-          <span className="text-emerald-400 glow-emerald">
-            multi-tenant API Gateway
-          </span>
-        </h1>
+          <h1 className="text-6xl leading-[1.05] font-display">
+            Multi-tenant API
+            <br />
+            <span className="text-acid glow">
+              Gateway Platform
+            </span>
+          </h1>
 
-        <p className="text-slate-400 text-lg max-w-2xl">
-          A production-grade gateway designed for isolation, correctness,
-          and visibility — protecting upstream services without exposing
-          control surfaces.
-        </p>
+          <p className="text-lg text-muted max-w-xl">
+            A production-grade edge layer enforcing isolation, authentication,
+            rate limits, and observability — without trusting clients or leaking
+            control.
+          </p>
 
-        <div className="flex gap-4 pt-4">
-          <Link
-            href="/gateway"
-            className="relative rounded-md bg-emerald-500/90 px-6 py-2.5 text-sm font-medium text-black
-                       hover:bg-emerald-400 transition
-                       shadow-[0_0_20px_rgba(16,185,129,0.35)]"
-          >
-            Try Gateway
-          </Link>
-          <Link
-            href="/tenant"
-            className="rounded-md border border-slate-700/80 px-6 py-2.5 text-sm
-                       hover:border-emerald-400/60 hover:text-emerald-400 transition"
-          >
-            Tenant Dashboard
-          </Link>
+          <div className="flex gap-6 pt-4">
+            <Link href="/gateway" className="btn-primary">
+              Enter Gateway
+            </Link>
+            <Link href="/tenant" className="btn-ghost">
+              Tenant Console
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Failure modes */}
-      <section className="space-y-12">
-        <h2 className="text-2xl font-semibold">
-          Why gateways fail in practice
-        </h2>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <ProblemCard
-            index="01"
-            title="Uncontrolled access"
-            description="Weak authentication and shared credentials lead to abuse, data leakage, and cascading outages."
+      {/* IMPACT STATS */}
+      <section className="relative z-10 max-w-7xl mx-auto px-8 pb-32">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-14">
+          <Stat
+            value="0"
+            label="shared secrets"
+            description="Tenants never reuse credentials or keys"
           />
-          <ProblemCard
-            index="02"
-            title="Shared blast radius"
-            description="Without tenant isolation, one noisy client can degrade the entire platform."
+          <Stat
+            value="100%"
+            label="request attribution"
+            description="Every request mapped to tenant and route"
           />
-          <ProblemCard
-            index="03"
-            title="Zero attribution"
-            description="Failures without tenant-level metrics are impossible to debug or explain."
+          <Stat
+            value="Per-tenant"
+            label="rate limits"
+            description="One client cannot degrade another"
+          />
+          <Stat
+            value="Single"
+            label="control plane"
+            description="Only admins can mutate gateway state"
           />
         </div>
       </section>
 
-      {/* Protection */}
-      <section className="space-y-12">
-        <h2 className="text-2xl font-semibold">
-          What this gateway protects you from
-        </h2>
+      {/* DIVIDER */}
+      <SectionDivider label="FAILURE MODES" />
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <FeatureCard
-            title="Tenant isolation"
-            description="Every request is cryptographically attributed. No cross-tenant access paths."
-          />
-          <FeatureCard
-            title="Layered authentication"
-            description="API keys, JWT validation, and strict route allow-listing enforced at the edge."
-          />
-          <FeatureCard
-            title="Rate limiting"
-            description="Per-tenant limits contain abuse and protect upstream services."
-          />
-          <FeatureCard
-            title="Upstream protection"
-            description="Clear separation of gateway faults vs upstream failures."
-          />
-          <FeatureCard
-            title="Observability built-in"
-            description="Latency, error rates, and traffic metrics with tenant attribution."
-          />
-          <FeatureCard
-            title="Strict control plane"
-            description="Only administrators mutate state. Tenants never touch gateway internals."
-          />
-        </div>
+      {/* FAILURE MODES */}
+      <section className="relative z-10 max-w-7xl mx-auto px-8 py-28 grid grid-cols-1 md:grid-cols-3 gap-16">
+        <Failure
+          index="01"
+          title="No isolation"
+          body="Shared credentials and weak attribution cause cross-tenant data exposure."
+        />
+        <Failure
+          index="02"
+          title="Unbounded clients"
+          body="One noisy consumer can degrade upstream services for everyone."
+        />
+        <Failure
+          index="03"
+          title="Blind operations"
+          body="Without tenant-level metrics, failures cannot be explained or debugged."
+        />
       </section>
 
-      {/* Architecture */}
-      <section className="space-y-12">
-        <h2 className="text-2xl font-semibold">
-          Designed like real infrastructure
-        </h2>
+      {/* DIVIDER */}
+      <SectionDivider label="ARCHITECTURE" />
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <ArchitectureCard
-            title="Control plane"
-            accent="emerald"
-            points={[
-              "Tenant provisioning",
-              "Key rotation",
-              "Route & IdP configuration",
-              "Admin-only mutation",
-            ]}
-          />
-          <ArchitectureCard
-            title="Data plane"
-            accent="cyan"
-            points={[
-              "High-throughput proxying",
-              "Authentication & authorization",
-              "Rate limiting",
-              "Metrics & structured logs",
-            ]}
-          />
-        </div>
+      {/* ARCHITECTURE */}
+      <section className="relative z-10 max-w-7xl mx-auto px-8 py-32 grid md:grid-cols-2 gap-20">
+        <Architecture
+          title="Control Plane"
+          accent="acid"
+          items={[
+            "Tenant provisioning",
+            "Key rotation",
+            "Route allow-lists",
+            "Admin-only mutation",
+          ]}
+        />
+        <Architecture
+          title="Data Plane"
+          accent="cyan"
+          items={[
+            "High-throughput proxying",
+            "JWT & API-key enforcement",
+            "Rate limiting",
+            "Metrics & structured logs",
+          ]}
+        />
       </section>
 
-      {/* CTA */}
-      <section className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 p-12 text-center space-y-5">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent" />
+      {/* FINAL CTA */}
+      <section className="relative z-10 max-w-7xl mx-auto px-8 pb-40">
+        <div className="cta-panel">
+          <h3 className="text-2xl font-display">
+            Designed like real infrastructure
+          </h3>
+          <p className="text-muted max-w-xl">
+            This project prioritizes correctness, blast-radius containment,
+            and observability — the things that matter after your first outage.
+          </p>
 
-        <h3 className="relative text-xl font-semibold">
-          Built for learning — structured like production
-        </h3>
-        <p className="relative text-slate-400 max-w-xl mx-auto">
-          This project focuses on isolation, observability, and correctness —
-          the concerns that matter once real users exist.
-        </p>
-        <div className="relative flex justify-center gap-4 pt-2">
-          <Link
-            href="/metrics"
-            className="rounded-md border border-slate-700 px-5 py-2 text-sm
-                       hover:border-emerald-400/60 hover:text-emerald-400 transition"
-          >
-            View Metrics
-          </Link>
-          <Link
-            href="/gateway"
-            className="rounded-md bg-emerald-500 px-5 py-2 text-sm font-medium text-black
-                       hover:bg-emerald-400 transition"
-          >
-            Explore Gateway
-          </Link>
+          <div className="flex gap-6 pt-6">
+            <Link href="/metrics" className="btn-ghost">
+              View Metrics
+            </Link>
+            <Link href="/gateway" className="btn-primary">
+              Explore Platform
+            </Link>
+          </div>
         </div>
       </section>
+    </main>
+  );
+}
+
+/* ---------------- COMPONENTS ---------------- */
+
+function Stat({
+  value,
+  label,
+  description,
+}: {
+  value: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="text-5xl font-display text-acid glow">
+        {value}
+      </div>
+      <div className="text-sm tracking-wide uppercase">
+        {label}
+      </div>
+      <p className="text-muted text-sm">
+        {description}
+      </p>
     </div>
   );
 }
 
-/* ---------------- Components ---------------- */
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="relative z-10 max-w-7xl mx-auto px-8">
+      <div className="divider-line" />
+      <span className="divider-label">{label}</span>
+    </div>
+  );
+}
 
-function ProblemCard({
+function Failure({
   index,
   title,
-  description,
+  body,
 }: {
   index: string;
   title: string;
-  description: string;
+  body: string;
 }) {
   return (
-    <div className="relative rounded-lg border border-slate-800 bg-slate-900/60 p-6 space-y-3">
-      <span className="absolute top-4 right-4 text-xs text-emerald-400/40">
-        {index}
-      </span>
-      <h4 className="font-medium">{title}</h4>
-      <p className="text-sm text-slate-400">{description}</p>
+    <div className="space-y-4">
+      <span className="text-acid text-xs">{index}</span>
+      <h4 className="text-xl font-display">{title}</h4>
+      <p className="text-muted">{body}</p>
     </div>
   );
 }
 
-function FeatureCard({
+function Architecture({
   title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-6 space-y-2
-                    hover:border-emerald-400/40 transition">
-      <h4 className="font-medium">{title}</h4>
-      <p className="text-sm text-slate-400">{description}</p>
-    </div>
-  );
-}
-
-function ArchitectureCard({
-  title,
-  points,
+  items,
   accent,
 }: {
   title: string;
-  points: string[];
-  accent: "emerald" | "cyan";
+  items: string[];
+  accent: "acid" | "cyan";
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-7 space-y-4">
-      <h4 className={`font-medium text-${accent}-400`}>
-        {title}
-      </h4>
-      <ul className="list-disc ml-4 text-sm text-slate-400 space-y-1">
-        {points.map((p) => (
-          <li key={p}>{p}</li>
+    <div className={`arch-panel arch-${accent}`}>
+      <h4 className="font-display text-2xl">{title}</h4>
+      <ul className="space-y-3 text-muted">
+        {items.map((i) => (
+          <li key={i}>— {i}</li>
         ))}
       </ul>
     </div>
