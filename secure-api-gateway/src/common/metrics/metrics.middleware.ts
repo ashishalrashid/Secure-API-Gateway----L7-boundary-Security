@@ -10,6 +10,11 @@ export function requestMetrics(
   res: Response,
   next: NextFunction
 ) {
+  // 🚫 EXCLUDE observability endpoint
+  if (req.path === "/metrics") {
+    return next();
+  }
+
   const start = Date.now();
   let inflightDecremented = false;
 
@@ -22,11 +27,12 @@ export function requestMetrics(
     }
   };
 
-  // Normal completion
-  res.on("finish", () => {
-    decrementInflight();
+  res.on("finish", decrementInflight);
+  res.on("close", decrementInflight);
+  res.on("error", decrementInflight);
 
-    const tenantId = (req as any).tenantId ?? "unknown";
+  res.on("finish", () => {
+    const tenantId = (req as any).tenant?.id ?? "unknown";
     const status = String(res.statusCode);
 
     gatewayRequestsTotal.inc({ tenantId, status });
@@ -34,11 +40,6 @@ export function requestMetrics(
       { tenantId, status },
       Date.now() - start
     );
-  });
-
-  // Aborted / errored connection
-  res.on("close", () => {
-    decrementInflight();
   });
 
   next();
