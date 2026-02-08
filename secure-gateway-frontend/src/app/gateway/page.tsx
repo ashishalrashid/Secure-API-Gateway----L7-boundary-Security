@@ -131,7 +131,7 @@ export default function GatewayConsolePage() {
           {/* Status row */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted">
-              HTTP Status
+              HTTP Status - Note : Render Free tier may take upto a minute for first request
             </span>
             <StatusBadge status={status} />
           </div>

@@ -22,22 +22,15 @@ const proxy = httpProxy.createProxyServer({});
 @Controller()
 @UseGuards(ApiKeyGuard, RouteGuard, JwtGuard, RateLimitGuard)
 export class GatewayController {
-  private readonly upstream = 'http://localhost:4000';
 
   constructor() {
     /**
-     * 🔴 Transport-level upstream errors
-     * Examples:
-     * - ECONNREFUSED
-     * - DNS failure
-     * - socket hangup
+     * Transport-level upstream errors
      */
     proxy.on('error', (err, req: any, res: any) => {
       const tenantId = req?.tenant?.id ?? 'unknown';
 
-      gatewayUpstreamErrorsTotal.inc({
-        tenantId,
-      });
+      gatewayUpstreamErrorsTotal.inc({ tenantId });
 
       console.error('PROXY TRANSPORT ERROR:', err.message);
 
@@ -48,17 +41,13 @@ export class GatewayController {
     });
 
     /**
-     * 🔴 Application-level upstream errors (5xx)
-     * Example:
-     * - Upstream returns HTTP 500 / 502 / 503
+     *Application-level upstream errors (5xx)
      */
     proxy.on('proxyRes', (proxyRes, req: any) => {
       if (proxyRes.statusCode && proxyRes.statusCode >= 500) {
         const tenantId = req?.tenant?.id ?? 'unknown';
 
-        gatewayUpstreamErrorsTotal.inc({
-          tenantId,
-        });
+        gatewayUpstreamErrorsTotal.inc({ tenantId });
       }
     });
   }
@@ -70,10 +59,24 @@ export class GatewayController {
     // Strip gateway prefix
     req.url = req.url.replace(/^\/api/, '');
 
-    console.log('GATEWAY → UPSTREAM:', originalUrl, '→', req.url);
+    const upstream = (req as any).upstream;
+
+    if (!upstream) {
+      res.status(500).json({
+        error: 'Upstream not resolved',
+      });
+      return;
+    }
+
+    console.log(
+      'GATEWAY → UPSTREAM:',
+      originalUrl,
+      '→',
+      upstream + req.url,
+    );
 
     proxy.web(req, res, {
-      target: this.upstream,
+      target: upstream,
       changeOrigin: true,
     });
   }

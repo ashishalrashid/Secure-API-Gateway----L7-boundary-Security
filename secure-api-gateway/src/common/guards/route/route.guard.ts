@@ -11,9 +11,6 @@ import { gatewayRouteDenialsTotal } from 'src/common/metrics/metrics';
 @Injectable()
 export class RouteGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    
-    // console.log('route GUARD HIT');
-    
     const req = context.switchToHttp().getRequest<Request>();
     const tenant = (req as any).tenant;
 
@@ -21,20 +18,26 @@ export class RouteGuard implements CanActivate {
       throw new ForbiddenException('Tenant not resolved');
     }
 
-    // Strip gateway prefix
+    if (!tenant.upstreamBaseUrl) {
+      throw new ForbiddenException('Upstream base URL not configured');
+    }
+
     const path = req.path.replace(/^\/api/, '');
 
-    // console.log('RouteGuard - path:', path, 'allowedRoutes:', tenant.allowedRoutes);
-    // console.log('Route match result:', tenant.allowedRoutes.some((r: string) => path.startsWith(r)));
+    const route = tenant.allowedRoutes.find((r: any) =>
+      path.startsWith(r.path),
+    );
 
-    if (!tenant.allowedRoutes.some((r: string) => path.startsWith(r))) {
-      logRouteDeny(req,tenant.id);
-      gatewayRouteDenialsTotal.inc({
-      tenantId:tenant.id,
-      });
-
+    if (!route) {
+      logRouteDeny(req, tenant.id);
+      gatewayRouteDenialsTotal.inc({ tenantId: tenant.id });
       throw new ForbiddenException('Route not allowed for tenant');
     }
+
+    (req as any).upstream = tenant.upstreamBaseUrl;
+
+    // Optional: attach route policy for later guards
+    (req as any).route = route;
 
     return true;
   }
