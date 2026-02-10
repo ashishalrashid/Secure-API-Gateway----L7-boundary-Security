@@ -39,7 +39,11 @@ export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+
+  const [rotatedKey, setRotatedKey] = useState<{
+    tenantId: string;
+    apiKey: string;
+  } | null>(null);
 
   const [form, setForm] = useState({
     id: "",
@@ -77,7 +81,6 @@ export default function TenantsPage() {
   async function handleCreateTenant(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
 
     const routes: AllowedRoute[] = form.allowedRoutes
       .split(",")
@@ -111,7 +114,6 @@ export default function TenantsPage() {
         }),
       });
 
-      setSuccess(`Tenant '${form.id}' created`);
       setForm({
         id: "",
         name: "",
@@ -131,13 +133,16 @@ export default function TenantsPage() {
 
   async function rotateKey(id: string) {
     setError(null);
-    setSuccess(null);
     try {
       const res = await adminFetch<{ apiKey: string }>(
         `/control-plane/tenants/${id}/apikey`,
         { method: "POST", adminToken }
       );
-      setSuccess(`New API key for ${id}: ${res.apiKey}`);
+
+      setRotatedKey({
+        tenantId: id,
+        apiKey: res.apiKey,
+      });
     } catch (e: any) {
       setError(e.message);
     }
@@ -152,106 +157,149 @@ export default function TenantsPage() {
     await loadTenants();
   }
 
+  function copyKey() {
+    if (!rotatedKey) return;
+    navigator.clipboard.writeText(rotatedKey.apiKey);
+  }
+
   return (
     <div className="space-y-10">
-      <h2 className="font-display text-xl">Tenants</h2>
+      {/* HEADER */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-display text-xl">Tenants</h2>
+          <p className="text-xs text-muted mt-1">
+            Control-plane tenant provisioning
+          </p>
+        </div>
 
-      <form onSubmit={handleCreateTenant} className="arch-panel space-y-4">
-        <Field label="Admin token">
-          <input
-            type="password"
-            className="input"
-            value={adminToken}
-            onChange={(e) => setAdminToken(e.target.value)}
-          />
-        </Field>
-
-        <Field label="Tenant ID">
-          <input
-            className="input"
-            value={form.id}
-            onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))}
-          />
-        </Field>
-
-        <Field label="Name">
-          <input
-            className="input"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-        </Field>
-
-        <Field label="Upstream Base URL">
-          <input
-            className="input font-mono"
-            value={form.upstreamBaseUrl}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, upstreamBaseUrl: e.target.value }))
-            }
-          />
-        </Field>
-
-        <Field label="Allowed routes (comma-separated)">
-          <input
-            className="input font-mono"
-            value={form.allowedRoutes}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, allowedRoutes: e.target.value }))
-            }
-          />
-        </Field>
-
-        <SectionTitle>Optional IdP</SectionTitle>
-
-        <Field label="Issuer">
-          <input
-            className="input"
-            value={form.issuer}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, issuer: e.target.value }))
-            }
-          />
-        </Field>
-
-        <Field label="JWKS URI">
-          <input
-            className="input"
-            value={form.jwksUri}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, jwksUri: e.target.value }))
-            }
-          />
-        </Field>
-
-        <Field label="Audience">
-          <input
-            className="input"
-            value={form.audience}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, audience: e.target.value }))
-            }
-          />
-        </Field>
-
-        <button className="btn-primary" disabled={!adminToken}>
-          Create tenant
+        <button
+          onClick={loadTenants}
+          disabled={!adminToken || loading}
+          className="btn-ghost text-xs"
+        >
+          {loading ? "Refreshing…" : "Refresh"}
         </button>
-      </form>
+      </div>
 
-      {error && <Notice kind="error">{error}</Notice>}
-      {success && <Notice kind="success">{success}</Notice>}
+      {/* ROTATED KEY PANEL */}
+      {rotatedKey && (
+        <div className="arch-panel space-y-3 border border-acid/30">
+          <div className="flex items-center justify-between">
+            <strong className="text-sm">
+              New API key for <span className="font-mono">{rotatedKey.tenantId}</span>
+            </strong>
+            <button
+              onClick={copyKey}
+              className="btn-ghost text-xs"
+            >
+              Copy
+            </button>
+          </div>
 
-      <SectionTitle>Registered tenants</SectionTitle>
+          <div className="bg-black/40 border border-white/10 rounded-md p-3 font-mono text-xs break-all">
+            {rotatedKey.apiKey}
+          </div>
 
-      {tenants.map((t) => (
-        <TenantRow
-          key={t.id}
-          tenant={t}
-          onRotateKey={rotateKey}
-          onUpdateRoutes={updateRoutes}
-        />
-      ))}
+          <p className="text-[11px] text-muted">
+            ⚠️ This key is shown only once. Store it securely. It cannot be recovered later.
+          </p>
+        </div>
+      )}
+
+      {/* MAIN GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-10">
+        {/* LEFT */}
+        <div className="space-y-6">
+          <div className="arch-panel space-y-4">
+            <Field label="X-Admin-Token">
+              <input
+                type="password"
+                className="input"
+                value={adminToken}
+                onChange={(e) => setAdminToken(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <form onSubmit={handleCreateTenant} className="arch-panel space-y-5">
+            <SectionTitle>Create tenant</SectionTitle>
+
+            <Field label="Tenant ID">
+              <input
+                className="input"
+                value={form.id}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, id: e.target.value }))
+                }
+              />
+            </Field>
+
+            <Field label="Name">
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+              />
+            </Field>
+
+            <Field label="Upstream base URL">
+              <input
+                className="input font-mono"
+                value={form.upstreamBaseUrl}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    upstreamBaseUrl: e.target.value,
+                  }))
+                }
+              />
+            </Field>
+
+            <Field label="Allowed routes">
+              <input
+                className="input font-mono"
+                value={form.allowedRoutes}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    allowedRoutes: e.target.value,
+                  }))
+                }
+              />
+            </Field>
+
+            <button
+              className="btn-primary w-full text-sm"
+              disabled={!adminToken}
+            >
+              Create tenant
+            </button>
+          </form>
+
+          {error && <Notice kind="error">{error}</Notice>}
+        </div>
+
+        {/* RIGHT */}
+        <div className="space-y-4">
+          <SectionTitle>Registered tenants</SectionTitle>
+
+          {tenants.map((t) => (
+            <TenantRow
+              key={t.id}
+              tenant={t}
+              onRotateKey={rotateKey}
+              onUpdateRoutes={updateRoutes}
+            />
+          ))}
+
+          {tenants.length === 0 && (
+            <p className="text-xs text-muted">No tenants provisioned</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -279,9 +327,20 @@ function TenantRow({
   }
 
   return (
-    <div className="arch-panel space-y-2">
-      <strong>{tenant.name}</strong>
-      <div className="text-xs text-muted">{tenant.id}</div>
+    <div className="arch-panel space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <strong>{tenant.name}</strong>
+          <div className="text-[11px] text-muted font-mono">{tenant.id}</div>
+        </div>
+
+        <button
+          className="btn-ghost text-xs"
+          onClick={() => onRotateKey(tenant.id)}
+        >
+          Rotate key
+        </button>
+      </div>
 
       <Field label="Allowed routes">
         <input
@@ -291,13 +350,11 @@ function TenantRow({
         />
       </Field>
 
-      <button className="btn-ghost text-xs" onClick={() => onRotateKey(tenant.id)}>
-        Rotate API key
-      </button>
-
-      <button className="btn-primary text-xs" onClick={save}>
-        Save routes
-      </button>
+      <div className="flex justify-end">
+        <button className="btn-primary text-xs" onClick={save}>
+          Save routes
+        </button>
+      </div>
     </div>
   );
 }
@@ -306,7 +363,9 @@ function TenantRow({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs uppercase tracking-widest text-muted">{children}</h3>
+    <h3 className="text-xs uppercase tracking-widest text-muted">
+      {children}
+    </h3>
   );
 }
 
