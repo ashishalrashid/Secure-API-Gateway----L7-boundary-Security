@@ -16,12 +16,20 @@ type RateLimit = {
   maxRequests: number;
 };
 
+type AllowedRoute = {
+  path: string;
+  auth?: {
+    jwt?: boolean;
+  };
+};
+
 type Tenant = {
   id: string;
   name: string;
-  idp: IdPConfig;
-  allowedRoutes: string[];
-  rateLimit?: RateLimit;
+  upstreamBaseUrl: string;
+  idp?: IdPConfig;
+  allowedRoutes: AllowedRoute[];
+  rateLimit: RateLimit;
 };
 
 /* ---------------- PAGE ---------------- */
@@ -36,10 +44,11 @@ export default function TenantsPage() {
   const [form, setForm] = useState({
     id: "",
     name: "",
+    upstreamBaseUrl: "http://localhost:3000",
     issuer: "",
     jwksUri: "",
     audience: "",
-    allowedRoutes: "/api/service-a,/api/service-b",
+    allowedRoutes: "/health,/service",
     windowSeconds: 60,
     maxRequests: 100,
   });
@@ -70,6 +79,21 @@ export default function TenantsPage() {
     setError(null);
     setSuccess(null);
 
+    const routes: AllowedRoute[] = form.allowedRoutes
+      .split(",")
+      .map((r) => r.trim())
+      .filter(Boolean)
+      .map((path) => ({ path }));
+
+    const idp =
+      form.issuer && form.jwksUri && form.audience
+        ? {
+            issuer: form.issuer,
+            jwksUri: form.jwksUri,
+            audience: form.audience,
+          }
+        : undefined;
+
     try {
       await adminFetch("/control-plane/tenants", {
         method: "POST",
@@ -77,15 +101,9 @@ export default function TenantsPage() {
         body: JSON.stringify({
           id: form.id,
           name: form.name,
-          idp: {
-            issuer: form.issuer,
-            jwksUri: form.jwksUri,
-            audience: form.audience,
-          },
-          allowedRoutes: form.allowedRoutes
-            .split(",")
-            .map((r) => r.trim())
-            .filter(Boolean),
+          upstreamBaseUrl: form.upstreamBaseUrl,
+          idp,
+          allowedRoutes: routes,
           rateLimit: {
             windowSeconds: form.windowSeconds,
             maxRequests: form.maxRequests,
@@ -97,10 +115,11 @@ export default function TenantsPage() {
       setForm({
         id: "",
         name: "",
+        upstreamBaseUrl: "http://localhost:3000",
         issuer: "",
         jwksUri: "",
         audience: "",
-        allowedRoutes: "/api/service-a,/api/service-b",
+        allowedRoutes: "/health,/service",
         windowSeconds: 60,
         maxRequests: 100,
       });
@@ -124,7 +143,7 @@ export default function TenantsPage() {
     }
   }
 
-  async function updateRoutes(id: string, routes: string[]) {
+  async function updateRoutes(id: string, routes: AllowedRoute[]) {
     await adminFetch(`/control-plane/tenants/${id}/routes`, {
       method: "PUT",
       adminToken,
@@ -135,187 +154,104 @@ export default function TenantsPage() {
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="font-display text-xl">Tenants</h2>
-          <p className="text-xs text-muted mt-1">
-            Control-plane tenant provisioning and isolation
-          </p>
-        </div>
+      <h2 className="font-display text-xl">Tenants</h2>
 
-        <button
-          onClick={loadTenants}
-          disabled={!adminToken || loading}
-          className="btn-ghost text-xs"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
+      <form onSubmit={handleCreateTenant} className="arch-panel space-y-4">
+        <Field label="Admin token">
+          <input
+            type="password"
+            className="input"
+            value={adminToken}
+            onChange={(e) => setAdminToken(e.target.value)}
+          />
+        </Field>
+
+        <Field label="Tenant ID">
+          <input
+            className="input"
+            value={form.id}
+            onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))}
+          />
+        </Field>
+
+        <Field label="Name">
+          <input
+            className="input"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          />
+        </Field>
+
+        <Field label="Upstream Base URL">
+          <input
+            className="input font-mono"
+            value={form.upstreamBaseUrl}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, upstreamBaseUrl: e.target.value }))
+            }
+          />
+        </Field>
+
+        <Field label="Allowed routes (comma-separated)">
+          <input
+            className="input font-mono"
+            value={form.allowedRoutes}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, allowedRoutes: e.target.value }))
+            }
+          />
+        </Field>
+
+        <SectionTitle>Optional IdP</SectionTitle>
+
+        <Field label="Issuer">
+          <input
+            className="input"
+            value={form.issuer}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, issuer: e.target.value }))
+            }
+          />
+        </Field>
+
+        <Field label="JWKS URI">
+          <input
+            className="input"
+            value={form.jwksUri}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, jwksUri: e.target.value }))
+            }
+          />
+        </Field>
+
+        <Field label="Audience">
+          <input
+            className="input"
+            value={form.audience}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, audience: e.target.value }))
+            }
+          />
+        </Field>
+
+        <button className="btn-primary" disabled={!adminToken}>
+          Create tenant
         </button>
-      </div>
+      </form>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-10">
-        {/* LEFT: ADMIN + CREATE */}
-        <div className="space-y-6">
-          <div className="arch-panel space-y-4">
-            <SectionTitle>Admin authentication</SectionTitle>
+      {error && <Notice kind="error">{error}</Notice>}
+      {success && <Notice kind="success">{success}</Notice>}
 
-            <Field label="X-Admin-Token">
-              <input
-                type="password"
-                className="input"
-                value={adminToken}
-                onChange={(e) => setAdminToken(e.target.value)}
-              />
-            </Field>
+      <SectionTitle>Registered tenants</SectionTitle>
 
-            <p className="text-[11px] text-muted">
-              Required for all control-plane mutations
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleCreateTenant}
-            className="arch-panel space-y-5"
-          >
-            <SectionTitle>Create tenant</SectionTitle>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Tenant ID">
-                <input
-                  className="input"
-                  value={form.id}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, id: e.target.value }))
-                  }
-                  required
-                />
-              </Field>
-
-              <Field label="Name">
-                <input
-                  className="input"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  required
-                />
-              </Field>
-            </div>
-
-            <Field label="Allowed routes">
-              <input
-                className="input font-mono"
-                value={form.allowedRoutes}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    allowedRoutes: e.target.value,
-                  }))
-                }
-              />
-            </Field>
-
-            <Field label="OIDC issuer">
-              <input
-                className="input"
-                value={form.issuer}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, issuer: e.target.value }))
-                }
-              />
-            </Field>
-
-            <Field label="JWKS URI">
-              <input
-                className="input"
-                value={form.jwksUri}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, jwksUri: e.target.value }))
-                }
-              />
-            </Field>
-
-            <Field label="Audience">
-              <input
-                className="input"
-                value={form.audience}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, audience: e.target.value }))
-                }
-              />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Window (s)">
-                <input
-                  type="number"
-                  className="input"
-                  value={form.windowSeconds}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      windowSeconds: Number(e.target.value),
-                    }))
-                  }
-                />
-              </Field>
-
-              <Field label="Max requests">
-                <input
-                  type="number"
-                  className="input"
-                  value={form.maxRequests}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      maxRequests: Number(e.target.value),
-                    }))
-                  }
-                />
-              </Field>
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary w-full text-sm"
-              disabled={!adminToken}
-            >
-              Create tenant
-            </button>
-          </form>
-
-          {error && <Notice kind="error">{error}</Notice>}
-          {success && <Notice kind="success">{success}</Notice>}
-        </div>
-
-        {/* RIGHT: TENANT LIST */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <SectionTitle>Registered tenants</SectionTitle>
-            <span className="text-xs text-muted">
-              {tenants.length} total
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {tenants.map((t) => (
-              <TenantRow
-                key={t.id}
-                tenant={t}
-                onRotateKey={rotateKey}
-                onUpdateRoutes={updateRoutes}
-              />
-            ))}
-
-            {tenants.length === 0 && (
-              <p className="text-xs text-muted">
-                No tenants provisioned
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+      {tenants.map((t) => (
+        <TenantRow
+          key={t.id}
+          tenant={t}
+          onRotateKey={rotateKey}
+          onUpdateRoutes={updateRoutes}
+        />
+      ))}
     </div>
   );
 }
@@ -329,46 +265,23 @@ function TenantRow({
 }: {
   tenant: Tenant;
   onRotateKey: (id: string) => void;
-  onUpdateRoutes: (id: string, routes: string[]) => Promise<void>;
+  onUpdateRoutes: (id: string, routes: AllowedRoute[]) => Promise<void>;
 }) {
-  const [routes, setRoutes] = useState(tenant.allowedRoutes.join(","));
-  const [saving, setSaving] = useState(false);
+  const [routes, setRoutes] = useState(
+    tenant.allowedRoutes.map((r) => r.path).join(",")
+  );
 
   async function save() {
-    setSaving(true);
     await onUpdateRoutes(
       tenant.id,
-      routes.split(",").map((r) => r.trim())
+      routes.split(",").map((r) => ({ path: r.trim() }))
     );
-    setSaving(false);
   }
 
   return (
-    <div className="arch-panel space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium">{tenant.name}</h4>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-muted font-mono">
-              {tenant.id}
-            </span>
-          </div>
-
-          <p className="text-[11px] text-muted">
-            Routes: {tenant.allowedRoutes.length} ·{" "}
-            {tenant.rateLimit
-              ? `${tenant.rateLimit.maxRequests}/${tenant.rateLimit.windowSeconds}s`
-              : "No rate limit"}
-          </p>
-        </div>
-
-        <button
-          onClick={() => onRotateKey(tenant.id)}
-          className="btn-ghost text-xs"
-        >
-          Rotate key
-        </button>
-      </div>
+    <div className="arch-panel space-y-2">
+      <strong>{tenant.name}</strong>
+      <div className="text-xs text-muted">{tenant.id}</div>
 
       <Field label="Allowed routes">
         <input
@@ -378,26 +291,22 @@ function TenantRow({
         />
       </Field>
 
-      <div className="flex justify-end">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="btn-primary text-xs"
-        >
-          {saving ? "Saving…" : "Save routes"}
-        </button>
-      </div>
+      <button className="btn-ghost text-xs" onClick={() => onRotateKey(tenant.id)}>
+        Rotate API key
+      </button>
+
+      <button className="btn-primary text-xs" onClick={save}>
+        Save routes
+      </button>
     </div>
   );
 }
 
-/* ---------------- UI PRIMITIVES ---------------- */
+/* ---------------- UI ---------------- */
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs uppercase tracking-widest text-muted">
-      {children}
-    </h3>
+    <h3 className="text-xs uppercase tracking-widest text-muted">{children}</h3>
   );
 }
 
@@ -409,10 +318,8 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="space-y-1">
-      <span className="text-[11px] text-muted uppercase tracking-wide">
-        {label}
-      </span>
+    <label className="space-y-1 block">
+      <span className="text-[11px] text-muted uppercase">{label}</span>
       {children}
     </label>
   );
@@ -425,11 +332,12 @@ function Notice({
   kind: "error" | "success";
   children: React.ReactNode;
 }) {
-  const color =
-    kind === "error" ? "text-red-400" : "text-acid";
-
   return (
-    <div className={`text-xs ${color} border border-white/10 rounded-md px-3 py-2`}>
+    <div
+      className={`text-xs ${
+        kind === "error" ? "text-red-400" : "text-acid"
+      }`}
+    >
       {children}
     </div>
   );

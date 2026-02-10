@@ -7,10 +7,17 @@ const BASE_URL =
 
 /* ---------------- TYPES ---------------- */
 
+type AllowedRoute = {
+  path: string;
+  auth?: {
+    jwt?: boolean;
+  };
+};
+
 type TenantInfo = {
   id: string;
   name: string;
-  allowedRoutes: string[];
+  allowedRoutes: AllowedRoute[];
 };
 
 type TenantMetrics = {
@@ -65,9 +72,7 @@ export default function TenantDashboard() {
     <div className="space-y-10 max-w-7xl">
       {/* HEADER */}
       <div>
-        <h2 className="font-display text-xl">
-          Tenant Dashboard
-        </h2>
+        <h2 className="font-display text-xl">Tenant Dashboard</h2>
         <p className="text-xs text-muted mt-1">
           Tenant-scoped usage and access metrics
         </p>
@@ -123,22 +128,26 @@ export default function TenantDashboard() {
               <Info label="Tenant ID" mono>
                 {tenant.id}
               </Info>
-              <Info label="Name">
-                {tenant.name}
-              </Info>
+              <Info label="Name">{tenant.name}</Info>
             </div>
 
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wide mb-2">
                 Allowed routes
               </p>
+
               <div className="flex flex-wrap gap-2">
                 {tenant.allowedRoutes.map((r) => (
                   <span
-                    key={r}
+                    key={r.path}
                     className="px-2 py-0.5 text-[11px] rounded bg-white/5 text-muted font-mono"
                   >
-                    {r}
+                    {r.path}
+                    {r.auth?.jwt === false && (
+                      <span className="ml-1 text-[10px] text-acid">
+                        (no-jwt)
+                      </span>
+                    )}
                   </span>
                 ))}
               </div>
@@ -151,11 +160,29 @@ export default function TenantDashboard() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
               <Metric label="Total" value={metrics.requests.total} />
-              <Metric label="Auth failures" value={metrics.requests.authFailures} danger />
-              <Metric label="Route denied" value={metrics.requests.routeDenials} />
-              <Metric label="Rate limited" value={metrics.requests.rateLimited} />
-              <Metric label="Upstream errors" value={metrics.requests.upstreamErrors} danger />
-              <Metric label="Internal errors" value={metrics.requests.internalErrors} danger />
+              <Metric
+                label="Auth failures"
+                value={metrics.requests.authFailures}
+                danger
+              />
+              <Metric
+                label="Route denied"
+                value={metrics.requests.routeDenials}
+              />
+              <Metric
+                label="Rate limited"
+                value={metrics.requests.rateLimited}
+              />
+              <Metric
+                label="Upstream errors"
+                value={metrics.requests.upstreamErrors}
+                danger
+              />
+              <Metric
+                label="Internal errors"
+                value={metrics.requests.internalErrors}
+                danger
+              />
             </div>
           </div>
         </div>
@@ -223,10 +250,9 @@ function Metric({
 }) {
   return (
     <div
-      className={`
-        arch-panel text-center
-        ${danger ? "text-red-400" : ""}
-      `}
+      className={`arch-panel text-center ${
+        danger ? "text-red-400" : ""
+      }`}
     >
       <p className="text-[11px] text-muted uppercase tracking-wide">
         {label}
@@ -258,9 +284,7 @@ function Notice({
 }
 
 function SkeletonPanel() {
-  return (
-    <div className="arch-panel h-32 animate-pulse" />
-  );
+  return <div className="arch-panel h-32 animate-pulse" />;
 }
 
 function SkeletonGrid() {

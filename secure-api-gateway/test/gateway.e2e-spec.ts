@@ -19,17 +19,14 @@ describe('Gateway', () => {
         id: 'gw-tenant',
         name: 'GW Tenant',
 
-        // ✅ REQUIRED NOW
         upstreamBaseUrl: 'http://localhost:4000',
 
-        // ✅ IdP exists → JWT enabled by default
         idp: {
           issuer: 'x',
           jwksUri: 'https://example.com/.well-known/jwks.json',
           audience: 'z',
         },
 
-        // ✅ route-level config
         allowedRoutes: [
           {
             path: '/health',
