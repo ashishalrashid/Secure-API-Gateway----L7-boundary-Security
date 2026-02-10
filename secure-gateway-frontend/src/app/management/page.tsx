@@ -39,11 +39,7 @@ export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [rotatedKey, setRotatedKey] = useState<{
-    tenantId: string;
-    apiKey: string;
-  } | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     id: "",
@@ -81,6 +77,7 @@ export default function TenantsPage() {
   async function handleCreateTenant(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     const routes: AllowedRoute[] = form.allowedRoutes
       .split(",")
@@ -114,6 +111,7 @@ export default function TenantsPage() {
         }),
       });
 
+      setSuccess(`Tenant '${form.id}' created`);
       setForm({
         id: "",
         name: "",
@@ -133,16 +131,13 @@ export default function TenantsPage() {
 
   async function rotateKey(id: string) {
     setError(null);
+    setSuccess(null);
     try {
       const res = await adminFetch<{ apiKey: string }>(
         `/control-plane/tenants/${id}/apikey`,
         { method: "POST", adminToken }
       );
-
-      setRotatedKey({
-        tenantId: id,
-        apiKey: res.apiKey,
-      });
+      setSuccess(`New API key for ${id}: ${res.apiKey}`);
     } catch (e: any) {
       setError(e.message);
     }
@@ -157,9 +152,15 @@ export default function TenantsPage() {
     await loadTenants();
   }
 
-  function copyKey() {
-    if (!rotatedKey) return;
-    navigator.clipboard.writeText(rotatedKey.apiKey);
+  // 🔴 UPSTREAM EDIT (NEW)
+  async function updateUpstream(id: string, upstreamBaseUrl: string) {
+    await adminFetch(`/control-plane/tenants/${id}/upstream`, {
+      method: "PUT",
+      adminToken,
+      body: JSON.stringify({ upstreamBaseUrl }),
+    });
+    setSuccess(`Upstream updated for ${id}`);
+    await loadTenants();
   }
 
   return (
@@ -182,36 +183,13 @@ export default function TenantsPage() {
         </button>
       </div>
 
-      {/* ROTATED KEY PANEL */}
-      {rotatedKey && (
-        <div className="arch-panel space-y-3 border border-acid/30">
-          <div className="flex items-center justify-between">
-            <strong className="text-sm">
-              New API key for <span className="font-mono">{rotatedKey.tenantId}</span>
-            </strong>
-            <button
-              onClick={copyKey}
-              className="btn-ghost text-xs"
-            >
-              Copy
-            </button>
-          </div>
-
-          <div className="bg-black/40 border border-white/10 rounded-md p-3 font-mono text-xs break-all">
-            {rotatedKey.apiKey}
-          </div>
-
-          <p className="text-[11px] text-muted">
-            ⚠️ This key is shown only once. Store it securely. It cannot be recovered later.
-          </p>
-        </div>
-      )}
-
       {/* MAIN GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-10">
         {/* LEFT */}
         <div className="space-y-6">
           <div className="arch-panel space-y-4">
+            <SectionTitle>Admin access</SectionTitle>
+
             <Field label="X-Admin-Token">
               <input
                 type="password"
@@ -280,6 +258,7 @@ export default function TenantsPage() {
           </form>
 
           {error && <Notice kind="error">{error}</Notice>}
+          {success && <Notice kind="success">{success}</Notice>}
         </div>
 
         {/* RIGHT */}
@@ -292,12 +271,9 @@ export default function TenantsPage() {
               tenant={t}
               onRotateKey={rotateKey}
               onUpdateRoutes={updateRoutes}
+              onUpdateUpstream={updateUpstream} // 🔴 NEW
             />
           ))}
-
-          {tenants.length === 0 && (
-            <p className="text-xs text-muted">No tenants provisioned</p>
-          )}
         </div>
       </div>
     </div>
@@ -310,28 +286,45 @@ function TenantRow({
   tenant,
   onRotateKey,
   onUpdateRoutes,
+  onUpdateUpstream,
 }: {
   tenant: Tenant;
   onRotateKey: (id: string) => void;
   onUpdateRoutes: (id: string, routes: AllowedRoute[]) => Promise<void>;
+  onUpdateUpstream: (id: string, upstream: string) => Promise<void>;
 }) {
   const [routes, setRoutes] = useState(
     tenant.allowedRoutes.map((r) => r.path).join(",")
   );
 
-  async function save() {
+  // 🔴 UPSTREAM STATE (NEW)
+  const [editingUpstream, setEditingUpstream] = useState(false);
+  const [upstreamDraft, setUpstreamDraft] = useState(tenant.upstreamBaseUrl);
+  const [savingUpstream, setSavingUpstream] = useState(false);
+
+  async function saveRoutes() {
     await onUpdateRoutes(
       tenant.id,
       routes.split(",").map((r) => ({ path: r.trim() }))
     );
   }
 
+  // 🔴 UPSTREAM SAVE (NEW)
+  async function saveUpstream() {
+    setSavingUpstream(true);
+    await onUpdateUpstream(tenant.id, upstreamDraft);
+    setSavingUpstream(false);
+    setEditingUpstream(false);
+  }
+
   return (
-    <div className="arch-panel space-y-3">
+    <div className="arch-panel space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <strong>{tenant.name}</strong>
-          <div className="text-[11px] text-muted font-mono">{tenant.id}</div>
+          <div className="text-[11px] text-muted font-mono">
+            {tenant.id}
+          </div>
         </div>
 
         <button
@@ -342,6 +335,59 @@ function TenantRow({
         </button>
       </div>
 
+      {/* 🔴 UPSTREAM EDIT (NEW) */}
+      <div className="space-y-2">
+        <SectionTitle>Upstream (live traffic)</SectionTitle>
+
+        {!editingUpstream ? (
+          <div className="flex items-center justify-between gap-3">
+            <code className="text-[11px] bg-black/40 px-2 py-1 rounded border border-white/10">
+              {tenant.upstreamBaseUrl}
+            </code>
+
+            <button
+              className="btn-ghost text-xs text-red-400"
+              onClick={() => setEditingUpstream(true)}
+            >
+              Edit upstream
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              className="input font-mono"
+              value={upstreamDraft}
+              onChange={(e) => setUpstreamDraft(e.target.value)}
+            />
+
+            <div className="text-[11px] text-red-400">
+              ⚠️ Changing this affects live traffic immediately
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn-ghost text-xs"
+                onClick={() => {
+                  setUpstreamDraft(tenant.upstreamBaseUrl);
+                  setEditingUpstream(false);
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="btn-primary text-xs"
+                disabled={savingUpstream}
+                onClick={saveUpstream}
+              >
+                {savingUpstream ? "Saving…" : "Save upstream"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ROUTES */}
       <Field label="Allowed routes">
         <input
           className="input font-mono"
@@ -351,7 +397,7 @@ function TenantRow({
       </Field>
 
       <div className="flex justify-end">
-        <button className="btn-primary text-xs" onClick={save}>
+        <button className="btn-primary text-xs" onClick={saveRoutes}>
           Save routes
         </button>
       </div>
@@ -378,7 +424,9 @@ function Field({
 }) {
   return (
     <label className="space-y-1 block">
-      <span className="text-[11px] text-muted uppercase">{label}</span>
+      <span className="text-[11px] text-muted uppercase">
+        {label}
+      </span>
       {children}
     </label>
   );
