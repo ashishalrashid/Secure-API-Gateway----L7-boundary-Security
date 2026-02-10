@@ -22,8 +22,16 @@ export class RouteGuard implements CanActivate {
       throw new ForbiddenException('Upstream base URL not configured');
     }
 
-    const path = req.path.replace(/^\/api/, '');
+    /**
+     * Normalize path
+     * /api/health -> /health
+     */
+    const originalPath = req.originalUrl || req.url;
+    const path = originalPath.replace(/^\/api/, '');
 
+    /**
+     * Route resolution (STRICT, schema-aligned)
+     */
     const route = tenant.allowedRoutes.find((r: any) =>
       path.startsWith(r.path),
     );
@@ -34,9 +42,14 @@ export class RouteGuard implements CanActivate {
       throw new ForbiddenException('Route not allowed for tenant');
     }
 
+    /**
+     * Attach tenant-level upstream
+     */
     (req as any).upstream = tenant.upstreamBaseUrl;
 
-    // Optional: attach route policy for later guards
+    /**
+     * Attach resolved route for downstream guards (JWT, rate-limit)
+     */
     (req as any).route = route;
 
     return true;

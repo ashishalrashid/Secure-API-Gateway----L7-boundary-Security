@@ -1,11 +1,13 @@
 import request from 'supertest';
 import { createTestApp } from './test-app';
+import { redis } from '../src/common/redis/redis.client';
 
 describe('Control Plane', () => {
   let app;
 
   beforeAll(async () => {
     process.env.ADMIN_TOKEN = 'super-secret-admin-token';
+    await redis.flushall();
     app = await createTestApp();
   });
 

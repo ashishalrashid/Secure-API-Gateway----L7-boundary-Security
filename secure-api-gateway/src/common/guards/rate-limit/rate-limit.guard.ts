@@ -4,6 +4,7 @@ import type { Request } from "express";
 import { logRateLimit } from "src/common/logger/guardlogger";
 import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { gatewayRateLimitedTotal } from "src/common/metrics/metrics";
+import * as crypto from 'crypto';
 
 const DEFAULT_WINDOW_SECONDS =60;
 const DEFAULT_MAX_REQUESTS=100;
@@ -19,9 +20,9 @@ export class RateLimitGuard implements CanActivate{
       return true;
     }
 
-    const hash =require('crypto').create('sha256').update(apikey).digest('hex');
+    const hash = crypto.createHash('sha256').update(apikey).digest('hex');
 
-    const tenantId = await redis.get(`tenant:byApiKey:{hash}`);
+    const tenantId = await redis.get(`tenant:byApiKey:${hash}`);
     if (!tenantId){
       return true;
     }

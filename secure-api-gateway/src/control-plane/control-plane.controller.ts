@@ -2,7 +2,7 @@ import * as crypto from 'crypto';
 import { Tenant } from 'src/common/tenant/tenant.model';
 import { redis } from 'src/common/redis/redis.client';
 import { AdminGuard } from './guards/admin.guard';
-import { Controller, UseGuards, Post ,Body, Param, Put, HttpException, HttpStatus, Get} from '@nestjs/common';
+import { Controller, UseGuards, Post ,Body, Param, Put, HttpException, HttpStatus, Get, HttpCode} from '@nestjs/common';
 import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 import { json } from 'stream/consumers';
 import { logger } from 'src/common/logger/logger';
@@ -18,30 +18,35 @@ export class ControlPlaneController{
         return crypto.randomBytes(32).toString('hex');
     }
 
+    /**
+     * Normalize routes to object format
+     */
+    private normalizeRoutes(routes: (string | { path: string; auth?: { jwt?: boolean } })[]) {
+        return routes.map(route => 
+            typeof route === 'string' 
+                ? { path: route }
+                : route
+        );
+    }
+
     //create tenant
     @Post('tenants')
-    async createTenant(@Body() body: {
-    id: string;
-    name: string;
-    idp: {
-        issuer: string;
-        jwksUri: string;
-        audience: string;
-    };
-    allowedRoutes: string[];
-    }) {
+    @HttpCode(201)
+    async createTenant(@Body() body: any) {
     const tenantKey = `tenant:${body.id}`;
 
     const exists = await redis.get(tenantKey);
     if (exists) {
-        return { error: 'Tenant already exists' };
+        throw new HttpException('Tenant already exists', HttpStatus.CONFLICT);
     }
 
-    const tenant = {
+    const tenant: Tenant = {
         id: body.id,
         name: body.name,
+        upstreamBaseUrl: body.upstreamBaseUrl || 'http://localhost:3000',
         idp: body.idp,
-        allowedRoutes: body.allowedRoutes,
+        allowedRoutes: this.normalizeRoutes(body.allowedRoutes || []),
+        rateLimit: body.rateLimit || { windowSeconds: 60, maxRequests: 100 },
     };
 
     await redis.set(tenantKey, JSON.stringify(tenant));
@@ -63,14 +68,15 @@ export class ControlPlaneController{
     }
 
     //rotate and create api keys
-    @Post('tenants/:id/apiKey')
+    @Post('tenants/:id/apikey')
+    @HttpCode(201)
     async rotateApiKey(@Param('id') tenantId:string){
 
         const tenantKey= `tenant:${tenantId}`;
         const tenantJson =await redis.get(tenantKey);
         
         if (!tenantJson){
-            return {error:'tenant not found'};
+            throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
         }
 
         const apiKey =this.generateApiKey();
@@ -133,21 +139,21 @@ export class ControlPlaneController{
     async updateTenantRoutes(
         @Param('id') tenantId:string,
         @Body()
-        body:{allowedRoutes: string[];},
+        body:{allowedRoutes: (string | { path: string; auth?: { jwt?: boolean } })[];},
     ){
         const tenantKey=`tenant:${tenantId}`;
         const tenantJson=await redis.get(tenantKey);
 
         if (!tenantJson){
-            throw new HttpException('tenant key not found', HttpStatus.NOT_FOUND);
+            throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
         }
 
         if(!Array.isArray(body.allowedRoutes)){
-            throw new HttpException('Allowed routes not provide or not an array',HttpStatus.BAD_REQUEST);
+            throw new HttpException('Allowed routes must be an array',HttpStatus.BAD_REQUEST);
         }
 
         const tenant =JSON.parse(tenantJson);
-        tenant.allowedRoutes =body.allowedRoutes;
+        tenant.allowedRoutes = this.normalizeRoutes(body.allowedRoutes);
 
         await redis.set(tenantKey,JSON.stringify(tenant));
 
