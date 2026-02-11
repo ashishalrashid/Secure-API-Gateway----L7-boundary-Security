@@ -23,18 +23,32 @@ export class RouteGuard implements CanActivate {
     }
 
     /**
-     * Normalize path
-     * /api/health -> /health
+     * Normalize path safely
+     * - Use req.path (NO query string)
+     * - Strip /api prefix
+     * - Remove trailing slash
      */
-    const originalPath = req.originalUrl || req.url;
-    const path = originalPath.replace(/^\/api/, '');
+    let path = req.path.replace(/^\/api/, '');
+
+    // Remove trailing slash (except if root)
+    if (path.length > 1 && path.endsWith('/')) {
+      path = path.slice(0, -1);
+    }
 
     /**
-     * Route resolution (STRICT, schema-aligned)
+     * Strict route resolution
+     * Ensures "/v1/health" matches exactly or as prefix
      */
-    const route = tenant.allowedRoutes.find((r: any) =>
-      path.startsWith(r.path),
-    );
+    const route = tenant.allowedRoutes.find((r: any) => {
+      const allowed = r.path.endsWith('/')
+        ? r.path.slice(0, -1)
+        : r.path;
+
+      return (
+        path === allowed ||          // exact match
+        path.startsWith(allowed + '/') // nested route match
+      );
+    });
 
     if (!route) {
       logRouteDeny(req, tenant.id);
@@ -43,12 +57,12 @@ export class RouteGuard implements CanActivate {
     }
 
     /**
-     * Attach tenant-level upstream
+     * Attach upstream for proxy layer
      */
     (req as any).upstream = tenant.upstreamBaseUrl;
 
     /**
-     * Attach resolved route for downstream guards (JWT, rate-limit)
+     * Attach resolved route metadata
      */
     (req as any).route = route;
 

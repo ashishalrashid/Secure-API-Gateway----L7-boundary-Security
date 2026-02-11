@@ -5,7 +5,7 @@ import { apiKeyFetch } from "@/lib/api";
 
 export default function GatewayConsolePage() {
   const [apiKey, setApiKey] = useState("");
-  const [proxyPath, setProxyPath] = useState("api/health");
+  const [proxyPath, setProxyPath] = useState("v1/health"); // ✅ FIXED
   const [method, setMethod] = useState<"GET" | "POST">("GET");
   const [body, setBody] = useState("{}");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,19 @@ export default function GatewayConsolePage() {
     setResponseText("");
 
     try {
-      const res = await apiKeyFetch(`/${proxyPath}`, {
+      let normalizedPath = proxyPath.trim();
+
+      // ❌ Prevent user from including api/
+      if (normalizedPath.startsWith("api/")) {
+        normalizedPath = normalizedPath.replace(/^api\//, "");
+      }
+
+      // ❌ Prevent leading slash duplication
+      if (normalizedPath.startsWith("/")) {
+        normalizedPath = normalizedPath.slice(1);
+      }
+
+      const res = await apiKeyFetch(`/api/${normalizedPath}`, {
         apiKey,
         method,
         body: method === "POST" ? body : undefined,
@@ -32,7 +44,7 @@ export default function GatewayConsolePage() {
       setStatus(res.status);
       setResponseText(await res.text());
     } catch (err: any) {
-      setResponseText(err.message);
+      setResponseText(err.message || "Request failed");
     } finally {
       setLoading(false);
     }
@@ -52,7 +64,7 @@ export default function GatewayConsolePage() {
         </div>
 
         <span className="text-[11px] text-muted">
-          Target: <span className="text-acid">/api/&lt;proxyPath&gt;</span>
+          Target: <span className="text-acid">/api/{proxyPath}</span>
         </span>
       </div>
 
@@ -92,9 +104,9 @@ export default function GatewayConsolePage() {
             <Field label="Proxy path" className="col-span-2">
               <input
                 className="input font-mono"
+                placeholder="v1/health"
                 value={proxyPath}
                 onChange={(e) => setProxyPath(e.target.value)}
-                required
               />
             </Field>
           </div>
@@ -128,64 +140,17 @@ export default function GatewayConsolePage() {
         <div className="arch-panel flex flex-col gap-4">
           <SectionTitle>Response</SectionTitle>
 
-          {/* Status row */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted">
-              HTTP Status - Note : Render Free tier may take upto a minute for first request
+              HTTP Status — Render Free tier may take up to a minute for first request
             </span>
             <StatusBadge status={status} />
           </div>
 
-          {/* Body */}
           <div className="flex-1 rounded-md border border-white/10 bg-black/40 p-3 overflow-auto">
             <pre className="text-[11px] font-mono text-slate-200 whitespace-pre-wrap break-words">
               {responseText || "// no response yet"}
             </pre>
-          </div>
-
-          {/* Docs */}
-          <div className="pt-2 border-t border-white/10 space-y-1">
-            <p className="text-[11px] text-muted">
-              HTTP status code references:
-            </p>
-            <ul className="text-[11px] space-y-0.5">
-              <li>
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200"
-                  target="_blank"
-                  className="link"
-                >
-                  200 OK — MDN
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
-                  target="_blank"
-                  className="link"
-                >
-                  401 Unauthorized — MDN
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403"
-                  target="_blank"
-                  className="link"
-                >
-                  403 Forbidden — MDN
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
-                  target="_blank"
-                  className="link"
-                >
-                  429 Too Many Requests — MDN
-                </a>
-              </li>
-            </ul>
           </div>
         </div>
       </div>

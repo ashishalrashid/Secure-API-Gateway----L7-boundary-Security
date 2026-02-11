@@ -129,18 +129,12 @@ export default function TenantsPage() {
     }
   }
 
-  async function rotateKey(id: string) {
-    setError(null);
-    setSuccess(null);
-    try {
-      const res = await adminFetch<{ apiKey: string }>(
-        `/control-plane/tenants/${id}/apikey`,
-        { method: "POST", adminToken }
-      );
-      setSuccess(`New API key for ${id}: ${res.apiKey}`);
-    } catch (e: any) {
-      setError(e.message);
-    }
+  async function rotateKey(id: string): Promise<string> {
+    const res = await adminFetch<{ apiKey: string }>(
+      `/control-plane/tenants/${id}/apikey`,
+      { method: "POST", adminToken }
+    );
+    return res.apiKey;
   }
 
   async function updateRoutes(id: string, routes: AllowedRoute[]) {
@@ -152,7 +146,6 @@ export default function TenantsPage() {
     await loadTenants();
   }
 
-  // 🔴 UPSTREAM EDIT (NEW)
   async function updateUpstream(id: string, upstreamBaseUrl: string) {
     await adminFetch(`/control-plane/tenants/${id}/upstream`, {
       method: "PUT",
@@ -183,13 +176,11 @@ export default function TenantsPage() {
         </button>
       </div>
 
-      {/* MAIN GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-10">
         {/* LEFT */}
         <div className="space-y-6">
           <div className="arch-panel space-y-4">
             <SectionTitle>Admin access</SectionTitle>
-
             <Field label="X-Admin-Token">
               <input
                 type="password"
@@ -249,6 +240,72 @@ export default function TenantsPage() {
               />
             </Field>
 
+            <SectionTitle>Rate limiting</SectionTitle>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Window (seconds)">
+                <input
+                  type="number"
+                  min={1}
+                  className="input"
+                  value={form.windowSeconds}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      windowSeconds: Number(e.target.value),
+                    }))
+                  }
+                />
+              </Field>
+
+              <Field label="Max requests">
+                <input
+                  type="number"
+                  min={1}
+                  className="input"
+                  value={form.maxRequests}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      maxRequests: Number(e.target.value),
+                    }))
+                  }
+                />
+              </Field>
+            </div>
+
+            <SectionTitle>Optional IdP</SectionTitle>
+
+            <Field label="Issuer">
+              <input
+                className="input"
+                value={form.issuer}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, issuer: e.target.value }))
+                }
+              />
+            </Field>
+
+            <Field label="JWKS URI">
+              <input
+                className="input"
+                value={form.jwksUri}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, jwksUri: e.target.value }))
+                }
+              />
+            </Field>
+
+            <Field label="Audience">
+              <input
+                className="input"
+                value={form.audience}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, audience: e.target.value }))
+                }
+              />
+            </Field>
+
             <button
               className="btn-primary w-full text-sm"
               disabled={!adminToken}
@@ -271,7 +328,7 @@ export default function TenantsPage() {
               tenant={t}
               onRotateKey={rotateKey}
               onUpdateRoutes={updateRoutes}
-              onUpdateUpstream={updateUpstream} // 🔴 NEW
+              onUpdateUpstream={updateUpstream}
             />
           ))}
         </div>
@@ -289,7 +346,7 @@ function TenantRow({
   onUpdateUpstream,
 }: {
   tenant: Tenant;
-  onRotateKey: (id: string) => void;
+  onRotateKey: (id: string) => Promise<string>;
   onUpdateRoutes: (id: string, routes: AllowedRoute[]) => Promise<void>;
   onUpdateUpstream: (id: string, upstream: string) => Promise<void>;
 }) {
@@ -297,10 +354,8 @@ function TenantRow({
     tenant.allowedRoutes.map((r) => r.path).join(",")
   );
 
-  // 🔴 UPSTREAM STATE (NEW)
-  const [editingUpstream, setEditingUpstream] = useState(false);
-  const [upstreamDraft, setUpstreamDraft] = useState(tenant.upstreamBaseUrl);
-  const [savingUpstream, setSavingUpstream] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function saveRoutes() {
     await onUpdateRoutes(
@@ -309,12 +364,16 @@ function TenantRow({
     );
   }
 
-  // 🔴 UPSTREAM SAVE (NEW)
-  async function saveUpstream() {
-    setSavingUpstream(true);
-    await onUpdateUpstream(tenant.id, upstreamDraft);
-    setSavingUpstream(false);
-    setEditingUpstream(false);
+  async function handleRotate() {
+    const key = await onRotateKey(tenant.id);
+    setApiKey(key);
+    setCopied(false);
+  }
+
+  async function copyKey() {
+    if (!apiKey) return;
+    await navigator.clipboard.writeText(apiKey);
+    setCopied(true);
   }
 
   return (
@@ -329,65 +388,49 @@ function TenantRow({
 
         <button
           className="btn-ghost text-xs"
-          onClick={() => onRotateKey(tenant.id)}
+          onClick={handleRotate}
         >
           Rotate key
         </button>
       </div>
 
-      {/* 🔴 UPSTREAM EDIT (NEW) */}
-      <div className="space-y-2">
-        <SectionTitle>Upstream (live traffic)</SectionTitle>
+      {apiKey && (
+        <div className="space-y-2">
+          <div className="text-[11px] text-red-400">
+            ⚠️ This key is shown once. Store it securely.
+          </div>
 
-        {!editingUpstream ? (
-          <div className="flex items-center justify-between gap-3">
-            <code className="text-[11px] bg-black/40 px-2 py-1 rounded border border-white/10">
-              {tenant.upstreamBaseUrl}
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[11px] bg-black/40 px-2 py-1 rounded border border-white/10 font-mono">
+              {apiKey}
             </code>
 
             <button
-              className="btn-ghost text-xs text-red-400"
-              onClick={() => setEditingUpstream(true)}
+              className="btn-ghost text-xs"
+              onClick={copyKey}
             >
-              Edit upstream
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <input
-              className="input font-mono"
-              value={upstreamDraft}
-              onChange={(e) => setUpstreamDraft(e.target.value)}
-            />
+        </div>
+      )}
 
-            <div className="text-[11px] text-red-400">
-              ⚠️ Changing this affects live traffic immediately
-            </div>
+      <div className="space-y-2">
+        <SectionTitle>Upstream</SectionTitle>
+        <code className="text-[11px] bg-black/40 px-2 py-1 rounded border border-white/10">
+          {tenant.upstreamBaseUrl}
+        </code>
 
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn-ghost text-xs"
-                onClick={() => {
-                  setUpstreamDraft(tenant.upstreamBaseUrl);
-                  setEditingUpstream(false);
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                className="btn-primary text-xs"
-                disabled={savingUpstream}
-                onClick={saveUpstream}
-              >
-                {savingUpstream ? "Saving…" : "Save upstream"}
-              </button>
-            </div>
-          </div>
-        )}
+        <button
+          className="btn-ghost text-xs text-red-400"
+          onClick={() =>
+            onUpdateUpstream(tenant.id, tenant.upstreamBaseUrl)
+          }
+        >
+          Edit upstream
+        </button>
       </div>
 
-      {/* ROUTES */}
       <Field label="Allowed routes">
         <input
           className="input font-mono"

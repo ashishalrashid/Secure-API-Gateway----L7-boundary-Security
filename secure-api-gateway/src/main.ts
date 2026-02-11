@@ -11,30 +11,19 @@ async function bootstrap() {
   // console.log('AUD:', process.env.IDP_AUDIENCE);
 
   //CORS
-  const allowedOrigins =
-    process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) ?? [];
-
   app.enableCors({
-    origin: (origin, callback) => {
-      // Allow non-browser clients (curl, backend, SDKs)
-      if (!origin) {
-        return callback(null, true);
-      }
+  origin: true, // reflect request origin
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-API-Key",
+    "X-Admin-Token",
+  ],
+  exposedHeaders: [],
+  credentials: false,
+});
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("CORS origin not allowed"), false);
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Admin-Token",
-      "X-API-Key",
-    ],
-  });
 
   //middlware logging
   app.use(requestlogger);

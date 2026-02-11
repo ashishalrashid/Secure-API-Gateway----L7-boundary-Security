@@ -1,6 +1,7 @@
 {
   "allowedRoutes": [
     "/health",
+    "/search*",
     "/orders/*",
     "/invoices"
   ]
