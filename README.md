@@ -2,7 +2,7 @@
 
 A production-grade, **stateless, multi-tenant API gateway** built with NestJS that provides robust security, observability, and traffic management capabilities.
 
-## 🎯 Overview
+## Overview
 
 The Secure API Gateway acts as a reverse proxy and security layer for your microservices architecture. It enforces authentication, authorization, rate limiting, and comprehensive observability across multiple tenants within a single deployment.
 
