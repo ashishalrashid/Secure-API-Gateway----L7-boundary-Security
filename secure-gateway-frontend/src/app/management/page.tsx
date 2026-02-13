@@ -353,6 +353,7 @@ function TenantRow({
   const [routes, setRoutes] = useState(
     tenant.allowedRoutes.map((r) => r.path).join(",")
   );
+  const [upstream, setUpstream] = useState(tenant.upstreamBaseUrl);
 
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -417,17 +418,19 @@ function TenantRow({
 
       <div className="space-y-2">
         <SectionTitle>Upstream</SectionTitle>
-        <code className="text-[11px] bg-black/40 px-2 py-1 rounded border border-white/10">
-          {tenant.upstreamBaseUrl}
-        </code>
+        <input
+          className="input font-mono"
+          value={upstream}
+          onChange={(e) => setUpstream(e.target.value)}
+        />
 
         <button
-          className="btn-ghost text-xs text-red-400"
+          className="btn-primary text-xs"
           onClick={() =>
-            onUpdateUpstream(tenant.id, tenant.upstreamBaseUrl)
+            onUpdateUpstream(tenant.id, upstream)
           }
         >
-          Edit upstream
+          Save upstream
         </button>
       </div>
 
